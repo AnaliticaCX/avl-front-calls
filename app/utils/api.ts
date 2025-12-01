@@ -58,14 +58,21 @@ class ApiClient {
                 throw new Error(errorMessage);
             }
 
-            // Check if response has content
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const text = await response.text();
-                return text ? JSON.parse(text) : {} as T;
+            // Parse JSON response
+            const text = await response.text();
+            if (!text) {
+                console.warn('Empty response from:', url);
+                return {} as T;
             }
 
-            return {} as T;
+            try {
+                const parsed = JSON.parse(text);
+                console.log('Parsed response:', parsed); // Debug log
+                return parsed;
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError, 'Text:', text);
+                throw new Error('Error al parsear la respuesta del servidor');
+            }
         } catch (error) {
             if (error instanceof Error) {
                 throw error;
