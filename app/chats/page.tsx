@@ -142,11 +142,14 @@ export default function ChatsPage() {
 
             const data: any = await apiClient.get('/api/v1/chats/search', params);
 
+            console.log('API Response:', data); // Debug log
+
             setResults(data);
-            setAllLoadedResults(data.data || []);
-            setDisplayedResults((data.data || []).slice(0, perPage));
+            const resultData = data.data || [];
+            setAllLoadedResults(resultData);
+            setDisplayedResults(resultData.slice(0, perPage));
             setNextCursor(data.next_cursor || null);
-            setHasMore(!!data.has_more);
+            setHasMore(!!data.has_more || (data.total && resultData.length < data.total));
             setLocalFilter("");
         } catch (err: any) {
             setError(err.message || "Error al buscar conversaciones");
