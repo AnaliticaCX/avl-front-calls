@@ -34,19 +34,44 @@ class ApiClient {
             Object.assign(headers, options.headers);
         }
 
-        const response = await fetch(url, {
-            ...options,
-            headers,
-        });
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers,
+            });
 
-        if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Token de autenticación inválido o expirado');
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Token de autenticación inválido o expirado');
+                }
+
+                // Try to get error message from response
+                let errorMessage = `Error ${response.status}: ${response.statusText}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.detail || errorData.message) {
+                        errorMessage = errorData.detail || errorData.message;
+                    }
+                } catch {
+                    // If JSON parsing fails, use default error message
+                }
+                throw new Error(errorMessage);
             }
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
 
-        return response.json();
+            // Check if response has content
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const text = await response.text();
+                return text ? JSON.parse(text) : {} as T;
+            }
+
+            return {} as T;
+        } catch (error) {
+            if (error instanceof Error) {
+                throw error;
+            }
+            throw new Error('Error de red o servidor no disponible');
+        }
     }
 
     async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
