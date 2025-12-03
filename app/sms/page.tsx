@@ -9,7 +9,7 @@ import Pagination from "../components/common/Pagination";
 import Input from "../components/Input";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { apiClient } from "../utils/api";
-import { downloadJSON } from "../utils/download";
+import { downloadXLSX } from "../utils/download";
 import { formatDate, formatTime, getTodayString } from "../utils/formatters";
 import { validateDateRange as validateDateRangeUtil } from "../utils/validators";
 
@@ -236,7 +236,7 @@ export default function SmsPage() {
             'Canal': sms.channel || ''
         }));
 
-        downloadJSON(excelData, `sms_${new Date().toISOString().split('T')[0]}.json`);
+        downloadXLSX(excelData, `sms_${new Date().toISOString().split('T')[0]}.xlsx`, 'SMS');
     };
 
     // Manejo de paginación visual

@@ -16,6 +16,7 @@ import { useFilters } from "../../hooks/useFilters";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { usePagination } from "../../hooks/usePagination";
 import { useSearch } from "../../hooks/useSearch";
+import { getTodayString } from "../../utils/formatters";
 import { validateDateRange as validateDateRangeUtil } from "../../utils/validators";
 
 interface CallFilters {
@@ -56,8 +57,8 @@ export default function GeneralCallsPage() {
         { name: 'customer_id', key: 'customer_id', label: 'ID Cliente', type: 'text' },
         { name: 'telephone', key: 'telephone', label: 'Teléfono', type: 'text' },
         { name: 'type_call', key: 'type_call', label: 'Tipo de Llamada', type: 'text' },
-        { name: 'start_date', key: 'start_date', label: 'Fecha Inicio', type: 'date' },
-        { name: 'end_date', key: 'end_date', label: 'Fecha Fin', type: 'date' }
+        { name: 'start_date', key: 'start_date', label: 'Fecha Inicio', type: 'date', max: getTodayString() },
+        { name: 'end_date', key: 'end_date', label: 'Fecha Fin', type: 'date', max: getTodayString() }
     ];
 
     const validateDateRange = (inicio?: string, fin?: string) => {

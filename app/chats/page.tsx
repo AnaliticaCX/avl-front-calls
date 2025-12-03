@@ -12,7 +12,7 @@ import ResultsHeader from "../components/ResultsHeader";
 import SearchControls from "../components/SearchControls";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { apiClient } from "../utils/api";
-import { downloadJSON } from "../utils/download";
+import { downloadXLSX } from "../utils/download";
 import { formatDate, getTodayString } from "../utils/formatters";
 import { validateDateRange as validateDateRangeUtil, validateEmail as validateEmailUtil } from "../utils/validators";
 
@@ -111,7 +111,7 @@ export default function ChatsPage() {
     async function buscarChats(e?: any) {
         if (e) e.preventDefault();
 
-        const hasAnyField = connId || customerId || customerEmail || customerPhone || startDate || endDate;
+        const hasAnyField = connId || customerId || customerEmail || customerPhone || startDate || endDate || keyword;
         if (!hasAnyField) {
             setError("Debes ingresar al menos un criterio de búsqueda (ID, email, teléfono o fechas)");
             return;
@@ -127,20 +127,31 @@ export default function ChatsPage() {
         setResults(null);
 
         try {
-            const params: Record<string, any> = {
-                page: 1,
-                per_page: 1000,
-                order_by: sortOrder,
-            };
+            let data: any;
 
-            if (connId) params.conn_id = connId;
-            if (customerId) params.customer_id = customerId;
-            if (customerEmail) params.customer_email = customerEmail;
-            if (customerPhone) params.customer_phone = customerPhone;
-            if (startDate) params.start_date = new Date(startDate).toISOString();
-            if (endDate) params.end_date = new Date(endDate).toISOString();
+            if (keyword) {
+                const params = {
+                    keyword,
+                    page: 1,
+                    per_page: 500
+                };
+                data = await apiClient.get('/api/v1/chats/search/keyword', params);
+            } else {
+                const params: Record<string, any> = {
+                    page: 1,
+                    per_page: 1000,
+                    order_by: sortOrder,
+                };
 
-            const data: any = await apiClient.get('/api/v1/chats/search', params);
+                if (connId) params.conn_id = connId;
+                if (customerId) params.customer_id = customerId;
+                if (customerEmail) params.customer_email = customerEmail;
+                if (customerPhone) params.customer_phone = customerPhone;
+                if (startDate) params.start_date = new Date(startDate).toISOString();
+                if (endDate) params.end_date = new Date(endDate).toISOString();
+
+                data = await apiClient.get('/api/v1/chats/search', params);
+            }
 
             console.log('API Response:', data); // Debug log
 
@@ -276,7 +287,7 @@ export default function ChatsPage() {
                 'Sentimiento': data.feeling || '',
                 'Transferida': data.is_transferred ? 'Sí' : 'No'
             }];
-            downloadJSON(excelData, `conversacion_${connId}.json`);
+            downloadXLSX(excelData, `conversacion_${connId}.xlsx`, 'Conversación');
         } catch (err) {
             alert('Error al descargar la conversación');
         }
@@ -300,7 +311,7 @@ export default function ChatsPage() {
             'Agentes (si transferida)': chat.all_agents ? chat.all_agents.join(' → ') : ''
         }));
 
-        downloadJSON(excelData, `conversaciones_${new Date().toISOString().split('T')[0]}.json`);
+        downloadXLSX(excelData, `conversaciones_${new Date().toISOString().split('T')[0]}.xlsx`, 'Conversaciones');
     };
 
     const limpiarFiltros = () => {
@@ -391,6 +402,15 @@ export default function ChatsPage() {
                         />
                     </div>
 
+                    <div className="mb-6">
+                        <Input
+                            label="Palabra clave"
+                            value={keyword}
+                            onChange={setKeyword}
+                            placeholder="Buscar en contenido del chat, nombre, email..."
+                        />
+                    </div>
+
                     {(emailError || dateRangeError) && (
                         <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
                             <div className="flex items-start">
@@ -426,6 +446,7 @@ export default function ChatsPage() {
                                     <ul className="space-y-1 list-disc list-inside">
                                         <li>Puedes combinar <strong>todos los criterios</strong> (IDs, email, teléfono, fechas)</li>
                                         <li>Todos los campos son <strong>opcionales</strong>, pero al menos uno debe tener valor</li>
+                                        <li><strong>Palabra clave:</strong> busca en el contenido del chat y datos del cliente (tiene prioridad sobre otros filtros)</li>
                                         <li><strong>Fecha inicio:</strong> busca desde esa fecha hasta hoy</li>
                                         <li><strong>Fecha fin:</strong> busca todo lo registrado hasta esa fecha</li>
                                         <li>Puedes usar ambas fechas para definir un rango específico</li>

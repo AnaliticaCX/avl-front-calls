@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-primary mx-auto"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#375a6f] mx-auto"></div>
                     <p className="mt-4 text-gray-500 font-medium">Cargando...</p>
                 </div>
             </div>
