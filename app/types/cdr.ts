@@ -125,6 +125,26 @@ export interface TipificationRecord {
     ingest_date: string | null;
 }
 
+export interface Cdr9Record {
+    channel: string | null;
+    date: string | null;
+    sent_from: string | null;
+    sent_to: string | null;
+    subject: string | null;
+    body: string | null;
+    ingested_at: string | null;
+}
+
+export interface Cdr9Response {
+    status: string;
+    data: Cdr9Record[] | null;
+    detalle: string | null;
+    total: number;
+    page?: number;
+    per_page?: number;
+    total_pages?: number;
+}
+
 export interface DetailedCdrResponse {
     status: string;
     header: CdrCallsRecord;

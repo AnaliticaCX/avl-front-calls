@@ -56,6 +56,16 @@ export default function CallsLandingPage() {
                     <circle cx="8" cy="8" r="1.5" fill="currentColor" />
                 </svg>
             )
+        },
+        {
+            title: "Detalle Correos (CDR 9)",
+            description: "Correos del canal por remitente, destinatario o asunto",
+            href: "/calls/detalle_correos",
+            icon: (
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+            )
         }
     ];
 
