@@ -352,9 +352,17 @@ export default function EmailReportPage() {
                             </div>
                             <div>
                                 <span className="block text-xs font-semibold text-gray-500 uppercase mb-2">Cuerpo</span>
-                                <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words font-sans bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    {selectedEmail.body || '(Sin contenido)'}
-                                </pre>
+                                {selectedEmail.body ? (
+                                    <iframe
+                                        srcDoc={selectedEmail.body}
+                                        sandbox="allow-same-origin"
+                                        className="w-full rounded-lg border border-gray-200 bg-white"
+                                        style={{ minHeight: '320px', height: '420px' }}
+                                        title="Cuerpo del correo"
+                                    />
+                                ) : (
+                                    <p className="text-sm text-gray-400 italic">Sin contenido</p>
+                                )}
                             </div>
                         </div>
                         <div className="p-4 border-t border-gray-200 flex justify-end gap-3">

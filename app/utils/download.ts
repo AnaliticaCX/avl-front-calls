@@ -100,18 +100,18 @@ export const downloadPDF = (
 </body>
 </html>`;
 
-    const printWindow = window.open('', '_blank');
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const printWindow = window.open(blobUrl, '_blank');
     if (!printWindow) {
+        URL.revokeObjectURL(blobUrl);
         alert('No se pudo abrir la ventana de impresión. Habilita las ventanas emergentes para descargar el PDF.');
         return;
     }
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-
     printWindow.onload = () => {
         printWindow.focus();
         printWindow.print();
+        URL.revokeObjectURL(blobUrl);
     };
 };
 
@@ -178,7 +178,7 @@ export const downloadEmailPDF = (email: Cdr9Record, filename?: string): void => 
     </div>
     <div>
         <div class="body-label">Cuerpo del correo</div>
-        <div class="body-content">${escapeHtmlRaw(email.body) || '<span style="color:#9ca3af">(Sin contenido)</span>'}</div>
+        <div class="body-content">${email.body || '<span style="color:#9ca3af">(Sin contenido)</span>'}</div>
     </div>
     <div class="footer">Generado: ${new Date().toLocaleString()} &nbsp;·&nbsp; ${escapeHtmlRaw(docFilename)}</div>
 </body>
