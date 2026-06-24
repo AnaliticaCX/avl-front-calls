@@ -354,7 +354,7 @@ export default function EmailReportPage() {
                                 <span className="block text-xs font-semibold text-gray-500 uppercase mb-2">Cuerpo</span>
                                 {selectedEmail.body ? (
                                     <iframe
-                                        srcDoc={selectedEmail.body}
+                                        srcDoc={`<meta charset="utf-8">${selectedEmail.body}`}
                                         sandbox="allow-same-origin"
                                         className="w-full rounded-lg border border-gray-200 bg-white"
                                         style={{ minHeight: '320px', height: '420px' }}
