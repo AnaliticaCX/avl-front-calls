@@ -65,7 +65,7 @@ export default function Hero() {
                         Accede de forma rápida y segura a todas las conversaciones, llamadas y mensajes de tu empresa. Una herramienta centralizada para el control total.
                     </p>
 
-                    <div className="flex flex-wrap gap-4 pt-2">
+                    <div className="flex items-center gap-4 pt-2 flex-wrap">
                         <Link href="/chats" className="btn-primary group">
                             Consultar Chats
                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -75,6 +75,9 @@ export default function Hero() {
                         </Link>
                         <Link href="/sms" className="btn-secondary">
                             Ver SMS
+                        </Link>
+                        <Link href="/emails" className="btn-secondary">
+                            Ver Correos
                         </Link>
                     </div>
                 </motion.div>

@@ -56,7 +56,7 @@ export default function CallsLandingPage() {
                     <circle cx="8" cy="8" r="1.5" fill="currentColor" />
                 </svg>
             )
-        }
+        },
     ];
 
     return (

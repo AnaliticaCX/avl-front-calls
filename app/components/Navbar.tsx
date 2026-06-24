@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { LogOut, Menu, MessageCircle, MessageSquare, Phone, X } from "lucide-react";
+import { LogOut, Mail, Menu, MessageCircle, MessageSquare, Phone, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,6 +30,7 @@ const Navbar = () => {
         { href: "/chats", label: "Chats", icon: MessageSquare },
         { href: "/sms", label: "SMS", icon: MessageCircle },
         { href: "/calls", label: "Llamadas", icon: Phone },
+        { href: "/emails", label: "Correos", icon: Mail },
     ];
 
     return (

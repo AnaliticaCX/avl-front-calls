@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, MessageCircle, MessageSquare, Phone, Search } from "lucide-react";
+import { FileText, Mail, MessageCircle, MessageSquare, Phone, Search } from "lucide-react";
 import Link from "next/link";
 import FeatureCard from "./components/FeatureCard";
 import Hero from "./components/Hero";
@@ -116,6 +116,10 @@ export default function Home() {
             <Link href="/calls" className="btn-secondary px-8 py-4 text-lg">
               <Phone size={20} />
               Llamadas
+            </Link>
+            <Link href="/emails" className="btn-secondary px-8 py-4 text-lg">
+              <Mail size={20} />
+              Correos
             </Link>
           </motion.div>
         </div>
