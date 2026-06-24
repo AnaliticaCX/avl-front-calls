@@ -15,7 +15,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { usePagination } from "../hooks/usePagination";
 import { useSearch } from "../hooks/useSearch";
 import { Cdr9Record } from "../types/cdr";
-import { downloadPDF, downloadXLSX, PdfColumn } from "../utils/download";
+import { downloadEmailPDF, downloadPDF, downloadXLSX, PdfColumn } from "../utils/download";
 import { formatDate, formatDateTime, getTodayString } from "../utils/formatters";
 import { validateDateRange as validateDateRangeUtil } from "../utils/validators";
 
@@ -44,7 +44,7 @@ export default function EmailReportPage() {
     const [showNote, setShowNote] = useLocalStorage('emails-hide-note', false);
     const [dateRangeError, setDateRangeError] = useState("");
     const [selectedEmail, setSelectedEmail] = useState<Cdr9Record | null>(null);
-    const { results, loading, error, search, setError } = useSearch('/api/calls/detalle_correos/search');
+    const { results, loading, error, search, setError } = useSearch('/api/mails/detalle_correos/search');
     const { filters, updateFilter, clearFilters } = useFilters<EmailFilters>({
         sent_from: '',
         sent_to: '',
@@ -352,13 +352,26 @@ export default function EmailReportPage() {
                             </div>
                             <div>
                                 <span className="block text-xs font-semibold text-gray-500 uppercase mb-2">Cuerpo</span>
-                                <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words font-sans bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    {selectedEmail.body || '(Sin contenido)'}
-                                </pre>
+                                {selectedEmail.body ? (
+                                    <iframe
+                                        srcDoc={`<meta charset="utf-8">${selectedEmail.body}`}
+                                        sandbox="allow-same-origin"
+                                        className="w-full rounded-lg border border-gray-200 bg-white"
+                                        style={{ minHeight: '320px', height: '420px' }}
+                                        title="Cuerpo del correo"
+                                    />
+                                ) : (
+                                    <p className="text-sm text-gray-400 italic">Sin contenido</p>
+                                )}
                             </div>
                         </div>
-                        <div className="p-4 border-t border-gray-200 flex justify-end">
+                        <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
                             <Button text="Cerrar" onClick={() => setSelectedEmail(null)} variant="secondary" />
+                            <Button
+                                text="Descargar PDF"
+                                onClick={() => downloadEmailPDF(selectedEmail, `correo_${selectedEmail.date ?? Date.now()}`)}
+                                variant="primary"
+                            />
                         </div>
                     </div>
                 </div>
