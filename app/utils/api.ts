@@ -109,6 +109,27 @@ class ApiClient {
             body: formData,
         });
     }
+
+    async getBlob(endpoint: string): Promise<Blob> {
+        const token = getAuthToken();
+        const headers: Record<string, string> = {};
+        if (token) headers['X-Auth-Token'] = token;
+
+        const response = await fetch(`${this.baseUrl}${endpoint}`, { headers });
+        if (!response.ok) {
+            let errorMessage = `Error ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.detail || errorData.message) {
+                    errorMessage = errorData.detail || errorData.message;
+                }
+            } catch {
+                // sin cuerpo JSON, usar el mensaje por defecto
+            }
+            throw new Error(errorMessage);
+        }
+        return response.blob();
+    }
 }
 
 export const apiClient = new ApiClient();
