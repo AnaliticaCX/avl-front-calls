@@ -22,9 +22,12 @@ class ApiClient {
         const url = `${this.baseUrl}${endpoint}`;
         const token = getAuthToken();
 
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        };
+        const headers: Record<string, string> = {};
+        // FormData necesita que el navegador ponga su propio Content-Type
+        // (con el boundary del multipart) — si lo forzamos a JSON, el body llega roto.
+        if (!(options?.body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json';
+        }
 
         if (token) {
             headers['X-Auth-Token'] = token;
@@ -93,10 +96,17 @@ class ApiClient {
         return this.request<T>(`${endpoint}${queryString}`);
     }
 
-    async post<T>(endpoint: string, body: Record<string, any>): Promise<T> {
+    async post<T>(endpoint: string, body?: Record<string, any>): Promise<T> {
         return this.request<T>(endpoint, {
             method: 'POST',
-            body: JSON.stringify(body)
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+    }
+
+    async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'POST',
+            body: formData,
         });
     }
 }
