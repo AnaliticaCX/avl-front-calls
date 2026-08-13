@@ -180,6 +180,14 @@ function AccionBoton({
 }
 
 function AyudaModal({ onClose }: { onClose: () => void }) {
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [onClose]);
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -267,16 +275,14 @@ export default function RuafPage() {
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const cargarTodo = useCallback(async (esRefresh: boolean) => {
+    // el historial casi no cambia, no hace falta pedirlo junto al estado cada 10s
+    const cargarEstado = useCallback(async (esRefresh: boolean) => {
         if (esRefresh) setRefreshing(true);
         try {
-            const [estadoData, historialData] = await Promise.all([
-                apiClient.get<RuafEstado>("/api/ruaf/estado"),
-                apiClient.get<{ corridas: CorridaHistorial[] }>("/api/ruaf/historial"),
-            ]);
+            const estadoData = await apiClient.get<RuafEstado>("/api/ruaf/estado");
             setEstado(estadoData);
-            setHistorial(historialData.corridas || []);
             setSegundosRestantes(estadoData.tiempo_estimado_minutos * 60);
             setError("");
         } catch (err: any) {
@@ -287,13 +293,29 @@ export default function RuafPage() {
         }
     }, []);
 
+    const cargarHistorial = useCallback(async () => {
+        try {
+            const historialData = await apiClient.get<{ corridas: CorridaHistorial[] }>("/api/ruaf/historial");
+            setHistorial(historialData.corridas || []);
+        } catch {
+            // no pasa nada, se queda con el ultimo valor
+        }
+    }, []);
+
+    const cargarTodo = useCallback(
+        async (esRefresh: boolean) => {
+            await Promise.all([cargarEstado(esRefresh), cargarHistorial()]);
+        },
+        [cargarEstado, cargarHistorial]
+    );
+
     useEffect(() => {
         cargarTodo(false);
-        intervalRef.current = setInterval(() => cargarTodo(true), REFRESH_MS);
+        intervalRef.current = setInterval(() => cargarEstado(true), REFRESH_MS);
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [cargarTodo]);
+    }, [cargarTodo, cargarEstado]);
 
     useEffect(() => {
         if (estado?.procesando) {
@@ -307,11 +329,12 @@ export default function RuafPage() {
     }, [estado?.procesando]);
 
     const mostrarFeedback = (ok: boolean, texto: string) => {
+        if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
         setFeedback({ ok, texto });
-        setTimeout(() => setFeedback(null), 6000);
+        feedbackTimeoutRef.current = setTimeout(() => setFeedback(null), 6000);
     };
 
-    const ejecutarAccion = async (nombre: string, endpoint: string, confirmar?: string) => {
+    const ejecutarAccion = async (nombre: string, endpoint: string, confirmar?: string, afectaHistorial = false) => {
         if (confirmar && !window.confirm(confirmar)) return;
         setAccionEnCurso(nombre);
         try {
@@ -321,7 +344,11 @@ export default function RuafPage() {
             mostrarFeedback(false, err.message || "No se pudo completar la acción.");
         } finally {
             setAccionEnCurso(null);
-            cargarTodo(true);
+            if (afectaHistorial) {
+                cargarTodo(true);
+            } else {
+                cargarEstado(true);
+            }
         }
     };
 
@@ -336,12 +363,14 @@ export default function RuafPage() {
     const subirLote = async () => {
         if (!archivo) return;
         setAccionEnCurso("subir_lote");
+        let cerroLoteAnterior = false;
         try {
             const formData = new FormData();
             formData.append("archivo", archivo);
             const resp = await apiClient.postFormData<RuafAccionResponse>("/api/ruaf/subir_lote", formData);
             mostrarFeedback(resp.ok, resp.ok ? resp.mensaje : resp.error || "Ocurrió un error.");
             if (resp.ok) {
+                cerroLoteAnterior = true;
                 setArchivo(null);
                 if (fileInputRef.current) fileInputRef.current.value = "";
             }
@@ -349,7 +378,11 @@ export default function RuafPage() {
             mostrarFeedback(false, err.message || "No se pudo subir el lote.");
         } finally {
             setAccionEnCurso(null);
-            cargarTodo(true);
+            if (cerroLoteAnterior) {
+                cargarTodo(true);
+            } else {
+                cargarEstado(true);
+            }
         }
     };
 
@@ -373,7 +406,9 @@ export default function RuafPage() {
     };
 
     const pct = estado && estado.total > 0 ? Math.round((estado.procesadas / estado.total) * 100) : 0;
-    const puedeSubir = !!estado && !estado.procesando;
+    // si el EC2 no responde, disponible y procesando llegan los dos en false
+    const sinConexion = !!estado && !estado.disponible && !estado.procesando;
+    const puedeSubir = !!estado && estado.disponible && !estado.procesando;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -393,6 +428,17 @@ export default function RuafPage() {
 
             <AnimatePresence>{mostrarAyuda && <AyudaModal onClose={() => setMostrarAyuda(false)} />}</AnimatePresence>
 
+            {feedback && (
+                <div
+                    className={`mt-4 flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm ${
+                        feedback.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                    }`}
+                >
+                    {feedback.ok ? <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" /> : <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />}
+                    <span>{feedback.texto}</span>
+                </div>
+            )}
+
             {loading && <LoadingSpinner text="Consultando estado de RUAF..." />}
             {!loading && error && <ErrorMessage message={error} />}
 
@@ -404,27 +450,37 @@ export default function RuafPage() {
 
                             <div className="flex-1 min-w-[200px]">
                                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                                    {estado.disponible ? (
+                                    {estado.procesando ? (
+                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-700 inline-flex items-center gap-2">
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Procesando
+                                        </span>
+                                    ) : estado.disponible ? (
                                         <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700 inline-flex items-center gap-2">
                                             <CheckCircle2 size={16} />
                                             Disponible
                                         </span>
                                     ) : (
-                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-700 inline-flex items-center gap-2">
-                                            <Loader2 size={16} className="animate-spin" />
-                                            Procesando
+                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-700 inline-flex items-center gap-2">
+                                            <AlertTriangle size={16} />
+                                            Sin conexión
                                         </span>
                                     )}
                                 </div>
-                                {estado.disponible ? (
-                                    <p className="text-sm text-gray-500">Listo para recibir un nuevo lote.</p>
-                                ) : (
+                                {estado.procesando ? (
                                     <p className="text-sm text-gray-500">
                                         {estado.pendientes} cédula{estado.pendientes !== 1 ? "s" : ""} pendiente
                                         {estado.pendientes !== 1 ? "s" : ""} · tiempo estimado{" "}
                                         <span className="font-semibold text-gray-700 tabular-nums">
                                             {formatearReloj(segundosRestantes)}
                                         </span>
+                                    </p>
+                                ) : estado.disponible ? (
+                                    <p className="text-sm text-gray-500">Listo para recibir un nuevo lote.</p>
+                                ) : (
+                                    <p className="text-sm text-red-600">
+                                        No se pudo conectar con el servidor de RUAF (EC2 apagado o túnel caído).
+                                        Reintenta en unos minutos.
                                     </p>
                                 )}
                             </div>
@@ -485,17 +541,6 @@ export default function RuafPage() {
                             Actúa directo sobre el proceso del servidor — sin necesitar terminal.
                         </p>
 
-                        {feedback && (
-                            <div
-                                className={`mb-4 flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm ${
-                                    feedback.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                                }`}
-                            >
-                                {feedback.ok ? <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" /> : <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />}
-                                <span>{feedback.texto}</span>
-                            </div>
-                        )}
-
                         <div className="flex flex-wrap gap-3 mb-6">
                             <AccionBoton
                                 icon={Pause}
@@ -514,7 +559,7 @@ export default function RuafPage() {
                                 label="Limpiar registros"
                                 variant="danger"
                                 loading={accionEnCurso === "limpiar"}
-                                onClick={() => ejecutarAccion("limpiar", "/api/ruaf/limpiar", "¿Limpiar los registros actuales? El resultado actual se archiva (no se pierde) y las cédulas quedan pendientes otra vez.")}
+                                onClick={() => ejecutarAccion("limpiar", "/api/ruaf/limpiar", "¿Limpiar los registros actuales? El resultado actual se archiva (no se pierde) y las cédulas quedan pendientes otra vez.", true)}
                             />
                         </div>
 
@@ -525,8 +570,9 @@ export default function RuafPage() {
                                 <div className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800">
                                     <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
                                     <span>
-                                        Hay un lote procesando ahora — no se puede subir uno nuevo hasta que
-                                        termine o lo pauses.
+                                        {sinConexion
+                                            ? "No se puede subir un lote: el servidor de RUAF no responde ahora mismo."
+                                            : "Hay un lote procesando ahora — no se puede subir uno nuevo hasta que termine o lo pauses."}
                                     </span>
                                 </div>
                             )}
@@ -596,7 +642,8 @@ export default function RuafPage() {
                             {archivo && (
                                 <button
                                     onClick={subirLote}
-                                    disabled={accionEnCurso === "subir_lote"}
+                                    disabled={accionEnCurso === "subir_lote" || !puedeSubir}
+                                    title={!puedeSubir ? "Ya no se puede subir — el estado cambió mientras elegías el archivo" : undefined}
                                     className="btn-primary text-sm py-2 px-5 mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {accionEnCurso === "subir_lote" ? (
