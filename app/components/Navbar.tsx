@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, LogOut, Mail, Menu, MessageCircle, MessageSquare, Phone, X } from "lucide-react";
+import { Activity, Flame, LogOut, Mail, Menu, MessageCircle, MessageSquare, Phone, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,6 +32,7 @@ const Navbar = () => {
         { href: "/calls", label: "Llamadas", icon: Phone },
         { href: "/emails", label: "Correos", icon: Mail },
         { href: "/ruaf", label: "RUAF", icon: Activity },
+        { href: "/quemadores", label: "Quemadores", icon: Flame },
     ];
 
     return (
