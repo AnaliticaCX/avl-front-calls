@@ -65,3 +65,21 @@ export interface AsignacionJuridicaResponse {
     total_pages: number;
     data: AsignacionJuridicaRecord[];
 }
+
+export interface ContactoRecord {
+    solicitud_id: string | null;
+    obligacion_id: string | null;
+    client_name: string | null;
+    client_type_contact: string | null;
+    client_name_contact: string | null;
+    contact_type: string | null;
+    contact_information: string | null;
+    obligacion_status: string | null;
+    ingest_date: string | null;
+}
+
+export interface ContactosResponse {
+    status: string;
+    total: number;
+    data: ContactoRecord[];
+}
