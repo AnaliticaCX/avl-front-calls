@@ -271,6 +271,8 @@ export default function RuafPage() {
     const [arrastrando, setArrastrando] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+    const [descargado, setDescargado] = useState(false);
+
     const [segundosRestantes, setSegundosRestantes] = useState(0);
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -328,6 +330,10 @@ export default function RuafPage() {
         };
     }, [estado?.procesando]);
 
+    useEffect(() => {
+        if (estado?.procesando) setDescargado(false);
+    }, [estado?.procesando]);
+
     const mostrarFeedback = (ok: boolean, texto: string) => {
         if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
         setFeedback({ ok, texto });
@@ -352,22 +358,40 @@ export default function RuafPage() {
         }
     };
 
+    const MAX_LOTE_BYTES = 50 * 1024 * 1024;
+
     const elegirArchivo = (f: File | null) => {
         if (f && !f.name.toLowerCase().endsWith(".xlsx")) {
             mostrarFeedback(false, "El archivo debe ser .xlsx");
             return;
         }
+        if (f && f.size > MAX_LOTE_BYTES) {
+            mostrarFeedback(false, `El archivo pesa ${(f.size / 1024 / 1024).toFixed(1)}MB — el límite es 50MB.`);
+            return;
+        }
         setArchivo(f);
     };
 
+    // el archivo va directo del navegador a S3 por una URL prefirmada (no pasa por el
+    // Lambda) — así no hay límite de tamaño real, sirve para lotes de miles de cédulas
     const subirLote = async () => {
         if (!archivo) return;
         setAccionEnCurso("subir_lote");
         let cerroLoteAnterior = false;
         try {
-            const formData = new FormData();
-            formData.append("archivo", archivo);
-            const resp = await apiClient.postFormData<RuafAccionResponse>("/api/ruaf/subir_lote", formData);
+            const { upload_url, s3_key } = await apiClient.post<{ upload_url: string; s3_key: string }>(
+                "/api/ruaf/subir_lote_url",
+                { nombre_archivo: archivo.name }
+            );
+
+            const subida = await fetch(upload_url, {
+                method: "PUT",
+                headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+                body: archivo,
+            });
+            if (!subida.ok) throw new Error("No se pudo subir el archivo a almacenamiento.");
+
+            const resp = await apiClient.post<RuafAccionResponse>("/api/ruaf/subir_lote_confirmar", { s3_key });
             mostrarFeedback(resp.ok, resp.ok ? resp.mensaje : resp.error || "Ocurrió un error.");
             if (resp.ok) {
                 cerroLoteAnterior = true;
@@ -398,6 +422,7 @@ export default function RuafPage() {
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
+            setDescargado(true);
         } catch (err: any) {
             mostrarFeedback(false, err.message || "No se pudo descargar el resumen.");
         } finally {
@@ -405,7 +430,9 @@ export default function RuafPage() {
         }
     };
 
-    const pct = estado && estado.total > 0 ? Math.round((estado.procesadas / estado.total) * 100) : 0;
+    const pctCalculado = estado && estado.total > 0 ? Math.round((estado.procesadas / estado.total) * 100) : 0;
+    const terminado = !!estado && estado.disponible && !estado.procesando && estado.total > 0 && estado.pendientes === 0;
+    const pct = terminado && descargado ? 0 : pctCalculado;
     // si el EC2 no responde, disponible y procesando llegan los dos en false
     const sinConexion = !!estado && !estado.disponible && !estado.procesando;
     const puedeSubir = !!estado && estado.disponible && !estado.procesando;
@@ -633,7 +660,7 @@ export default function RuafPage() {
                                             <span className="font-medium text-primary">Elegí un archivo</span> o arrastralo aquí
                                         </p>
                                         <p className="text-xs text-gray-400">
-                                            .xlsx con columnas Cedula y FechaExpedicion · límite ~150KB
+                                            .xlsx con columnas Cedula y FechaExpedicion · límite 50MB
                                         </p>
                                     </div>
                                 )}
