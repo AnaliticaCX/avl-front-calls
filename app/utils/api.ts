@@ -22,15 +22,12 @@ class ApiClient {
         const url = `${this.baseUrl}${endpoint}`;
         const token = getAuthToken();
 
-        const headers: Record<string, string> = {};
-        // FormData necesita que el navegador ponga su propio Content-Type
-        // (con el boundary del multipart) — si lo forzamos a JSON, el body llega roto.
-        if (!(options?.body instanceof FormData)) {
-            headers['Content-Type'] = 'application/json';
-        }
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
 
         if (token) {
-            headers['X-Auth-Token'] = token;
+            headers['Authorization'] = `Bearer ${token}`;
         }
 
         if (options?.headers) {
@@ -103,17 +100,24 @@ class ApiClient {
         });
     }
 
-    async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
-        return this.request<T>(endpoint, {
-            method: 'POST',
-            body: formData,
+    async putToSignedUrl(url: string, file: File, contentType: string): Promise<void> {
+        // La URL prefirmada de S3 ya lleva la firma en los query params: mandarle
+        // el header Authorization de la API la invalidaría.
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': contentType },
+            body: file,
         });
+
+        if (!response.ok) {
+            throw new Error(`No se pudo subir el archivo a S3 (${response.status})`);
+        }
     }
 
     async getBlob(endpoint: string): Promise<Blob> {
         const token = getAuthToken();
         const headers: Record<string, string> = {};
-        if (token) headers['X-Auth-Token'] = token;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const response = await fetch(`${this.baseUrl}${endpoint}`, { headers });
         if (!response.ok) {

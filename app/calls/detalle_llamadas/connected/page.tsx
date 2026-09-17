@@ -58,7 +58,7 @@ export default function ConnectedCallsPage() {
             if (fechaFin) params.hasta = fechaFin;
 
 
-            const data = await apiClient.get<Cdr1Response>("/api/cdr_1/search", params);
+            const data = await apiClient.get<Cdr1Response>("/api/calls/detalle_llamadas/search", params);
 
             if (data.status === "error") {
                 setError(data.detalle || "Error desconocido");

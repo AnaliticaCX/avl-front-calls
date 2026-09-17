@@ -28,3 +28,8 @@ export interface RuafAccionResponse {
     mensaje: string;
     error: string | null;
 }
+
+export interface RuafSubidaUrlResponse {
+    upload_url: string;
+    s3_key: string;
+}
