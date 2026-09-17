@@ -24,10 +24,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ErrorMessage from "../components/common/ErrorMessage";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import PageHeader from "../components/common/PageHeader";
-import { CorridaHistorial, RuafAccionResponse, RuafEstado } from "../types/ruaf";
+import { CorridaHistorial, RuafAccionResponse, RuafEstado, RuafSubidaUrlResponse } from "../types/ruaf";
 import { apiClient } from "../utils/api";
 
 const REFRESH_MS = 10000;
+const XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 function formatearReloj(segundos: number): string {
     const s = Math.max(0, Math.round(segundos));
@@ -365,9 +366,18 @@ export default function RuafPage() {
         setAccionEnCurso("subir_lote");
         let cerroLoteAnterior = false;
         try {
-            const formData = new FormData();
-            formData.append("archivo", archivo);
-            const resp = await apiClient.postFormData<RuafAccionResponse>("/api/ruaf/subir_lote", formData);
+            // El archivo va directo del navegador a S3 con una URL prefirmada y
+            // recién ahí se le avisa al EC2 que lo baje: así el lote no queda
+            // limitado por el tamaño máximo del cuerpo de la request.
+            const { upload_url, s3_key } = await apiClient.post<RuafSubidaUrlResponse>(
+                "/api/ruaf/subir_lote_url",
+                { nombre_archivo: archivo.name }
+            );
+            await apiClient.putToSignedUrl(upload_url, archivo, XLSX_CONTENT_TYPE);
+            const resp = await apiClient.post<RuafAccionResponse>(
+                "/api/ruaf/subir_lote_confirmar",
+                { s3_key }
+            );
             mostrarFeedback(resp.ok, resp.ok ? resp.mensaje : resp.error || "Ocurrió un error.");
             if (resp.ok) {
                 cerroLoteAnterior = true;

@@ -12,7 +12,7 @@ export default function Hero() {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                await apiClient.get('/health');
+                await apiClient.get('/healthz');
                 setDbStatus('connected');
             } catch (error) {
                 setDbStatus('disconnected');
