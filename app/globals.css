@@ -1,181 +1,262 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: #fffbf7;
-    --foreground: #374151;
-  }
+/* ==========================================================================
+   Sistema de diseño Organízate
+   Paleta derivada del logo: navy #092049 (tinta) + turquesa #03AE9E (acento)
+   ========================================================================== */
 
-  html,
-  body {
-    height: 100%;
+@theme {
+  /* --- Marca: tinta (navy del logo) --- */
+  --color-ink-50: #f2f5fa;
+  --color-ink-100: #e2e8f2;
+  --color-ink-200: #c5d0e4;
+  --color-ink-300: #9baece;
+  --color-ink-400: #6a83b0;
+  --color-ink-500: #456096;
+  --color-ink-600: #2e477a;
+  --color-ink-700: #1d3260;
+  --color-ink-800: #12254c;
+  --color-ink-900: #092049;
+  --color-ink-950: #050f2b;
+
+  /* --- Marca: acento (turquesa del logo) --- */
+  --color-accent-50: #ecfdf8;
+  --color-accent-100: #d0faef;
+  --color-accent-200: #a4f3e1;
+  --color-accent-300: #6be7ce;
+  --color-accent-400: #22d3b4;
+  --color-accent-500: #03ae9e;
+  --color-accent-600: #009285;
+  --color-accent-700: #00756c;
+  --color-accent-800: #045d56;
+  --color-accent-900: #064c47;
+  --color-accent-950: #002e2b;
+
+  /* --- Atajos semánticos de marca --- */
+  --color-brand-ink: var(--color-ink-900);
+  --color-brand-accent: var(--color-accent-500);
+
+  /* --- Superficies --- */
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f6f8fb;
+  --color-surface-raised: #ffffff;
+  --color-hairline: #e6ebf2;
+
+  /* --- Estados (armonizados con la marca) --- */
+  --color-positive: #0d9f6e;
+  --color-positive-soft: #e7f8f1;
+  --color-caution: #c2790b;
+  --color-caution-soft: #fdf4e3;
+  --color-critical: #d64545;
+  --color-critical-soft: #fdeeee;
+  --color-info: #2e6fd9;
+  --color-info-soft: #eaf1fd;
+
+  /* --- Tipografía --- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), var(--font-inter), ui-sans-serif, sans-serif;
+
+  /* --- Sombras --- */
+  --shadow-soft: 0 1px 2px rgb(9 32 73 / 0.04), 0 4px 12px rgb(9 32 73 / 0.06);
+  --shadow-lifted: 0 2px 4px rgb(9 32 73 / 0.05), 0 12px 28px rgb(9 32 73 / 0.10);
+  --shadow-accent: 0 8px 24px rgb(3 174 158 / 0.28);
+
+  /* --- Medidas del chrome de la app --- */
+  --spacing-sidebar: 17rem;
+  --spacing-sidebar-collapsed: 4.5rem;
+  --spacing-topbar: 4rem;
+
+  /* --- Animaciones --- */
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-rise: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(3 174 158 / 0.45); }
+  70% { box-shadow: 0 0 0 8px rgb(3 174 158 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(3 174 158 / 0); }
+}
+
+@layer base {
+  html {
     scroll-behavior: smooth;
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-surface-sunken);
+    color: var(--color-ink-800);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    color: #070120;
-    font-weight: 700;
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-ink-900);
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
     line-height: 1.2;
+  }
+
+  /* Números alineados en tablas y métricas */
+  th, td, .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-200);
+    color: var(--color-ink-900);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-500);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbars discretas */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-200) transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-@layer utilities {
-  .container-custom {
-    max-width: 80rem;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-
+@layer components {
+  /* --- Botones --- */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border-radius: 9999px;
+    border-radius: 0.625rem;
     font-weight: 500;
-    transition-property: all;
-    transition-duration: 300ms;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .btn:active {
-    transform: scale(0.95);
+    font-size: 0.875rem;
+    padding: 0.5625rem 1rem;
+    white-space: nowrap;
+    transition: background-color 180ms ease, color 180ms ease,
+                box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
   }
 
   .btn:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
+    transform: none !important;
   }
 
   .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border-radius: 9999px;
-    font-weight: 600;
-    transition-property: all;
-    transition-duration: 300ms;
-    background: linear-gradient(135deg, #375a6f 0%, #2b4f65 100%);
-    color: white;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    padding: 0.75rem 1.75rem;
-    font-size: 0.9375rem;
+    background-color: var(--color-accent-500);
+    color: #fff;
+    box-shadow: var(--shadow-soft);
   }
 
-  .btn-primary:hover {
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    transform: translateY(-0.125rem);
-    color: white;
-    background: linear-gradient(135deg, #2b4f65 0%, #233d4a 100%);
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-accent-600);
+    box-shadow: var(--shadow-accent);
+    transform: translateY(-1px);
   }
 
-  .btn-primary:active {
-    transform: scale(0.98);
-    color: white;
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+    background-color: var(--color-accent-700);
   }
 
   .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border-radius: 9999px;
-    font-weight: 600;
-    transition-property: all;
-    transition-duration: 300ms;
-    background-color: white;
-    color: #375a6f;
-    border: 2px solid #e5e7eb;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-    padding: 0.6875rem 1.75rem;
-    font-size: 0.9375rem;
+    background-color: var(--color-surface);
+    color: var(--color-ink-700);
+    border: 1px solid var(--color-hairline);
+    box-shadow: var(--shadow-soft);
   }
 
-  .btn-secondary:hover {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    transform: translateY(-0.125rem);
-    border-color: #375a6f;
-    background-color: #f8fafc;
-    color: #2b4f65;
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--color-accent-300);
+    color: var(--color-ink-900);
+    transform: translateY(-1px);
   }
 
-  .btn-secondary:active {
-    transform: scale(0.98);
-    background-color: #f1f5f9;
-    color: #233d4a;
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--color-ink-600);
   }
 
-  .btn-secondary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-ink-50);
+    color: var(--color-ink-900);
   }
 
+  /* --- Tarjetas --- */
   .card {
-    background-color: white;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    border: 1px solid #f3f4f6;
-    transition-property: all;
-    transition-duration: 300ms;
+    background-color: var(--color-surface-raised);
+    border: 1px solid var(--color-hairline);
+    border-radius: 0.875rem;
+    box-shadow: var(--shadow-soft);
   }
 
-  .card:hover {
-    transform: translateY(-0.25rem);
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  .card-interactive {
+    transition: box-shadow 220ms ease, transform 220ms ease, border-color 220ms ease;
   }
 
+  .card-interactive:hover {
+    border-color: var(--color-accent-300);
+    box-shadow: var(--shadow-lifted);
+    transform: translateY(-2px);
+  }
+
+  /* --- Campos --- */
   .input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #d1d5db;
-    background-color: white;
-    transition-property: all;
-    transition-duration: 200ms;
+    padding: 0.5625rem 0.75rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--color-hairline);
+    background-color: var(--color-surface);
+    color: var(--color-ink-800);
+    font-size: 0.875rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .input::placeholder {
+    color: var(--color-ink-300);
   }
 
   .input:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(55, 90, 111, 0.2);
-    border-color: #375a6f;
+    border-color: var(--color-accent-500);
+    box-shadow: 0 0 0 3px rgb(3 174 158 / 0.15);
+  }
+
+  /* --- Píldoras de estado --- */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1875rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    white-space: nowrap;
   }
 }
 
-/* Animations */
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }

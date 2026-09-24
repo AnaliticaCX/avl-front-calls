@@ -1,7 +1,10 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { AlertCircle, ArrowRight, KeyRound, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
+import Logo from '../components/brand/Logo';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -15,7 +18,7 @@ export default function LoginPage() {
         e.preventDefault();
 
         if (!token.trim()) {
-            setError('Por favor ingresa un token de acceso');
+            setError('Ingresa tu token de acceso para continuar');
             return;
         }
 
@@ -25,70 +28,104 @@ export default function LoginPage() {
         try {
             login(token);
             router.push('/');
-        } catch (err) {
-            setError('Error al procesar el token. Inténtalo nuevamente.');
+        } catch {
+            setError('No pudimos validar el token. Intentalo nuevamente.');
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-vertical flex items-center justify-center px-6 py-12">
-            <div className="max-w-md w-full">
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-                        <svg className="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                    </div>
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        Acceso
-                    </h1>
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink-950 px-6 py-12">
+            {/* Ambiente: halos de marca */}
+            <div aria-hidden className="pointer-events-none absolute inset-0">
+                <div className="absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-accent-500/10 blur-3xl" />
+                <div className="absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-ink-500/20 blur-3xl" />
+            </div>
+
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="relative w-full max-w-sm"
+            >
+                <div className="mb-8 flex flex-col items-center text-center">
+                    <Logo size={40} variant="onDark" />
+                    <p className="mt-4 text-sm text-ink-300">
+                        Consulta de historicos, quemadores y RUAF
+                    </p>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-2xl p-8">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         <div>
-                            <label htmlFor="token" className="block text-sm font-semibold text-gray-900 mb-2">
-                                Token
+                            <label
+                                htmlFor="token"
+                                className="mb-2 block text-sm font-medium text-ink-200"
+                            >
+                                Token de acceso
                             </label>
-                            <input
-                                id="token"
-                                type="password"
-                                value={token}
-                                onChange={(e) => setToken(e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
-                                placeholder="Ingresa tu token"
-                                disabled={loading}
-                                autoComplete="off"
-                            />
+                            <div className="relative">
+                                <KeyRound
+                                    size={16}
+                                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+                                    aria-hidden
+                                />
+                                <input
+                                    id="token"
+                                    type="password"
+                                    value={token}
+                                    onChange={(e) => {
+                                        setToken(e.target.value);
+                                        if (error) setError('');
+                                    }}
+                                    className="w-full rounded-lg border border-white/10 bg-ink-950/50 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition-colors placeholder:text-ink-500 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/25"
+                                    placeholder="Pega tu token aqui"
+                                    disabled={loading}
+                                    autoComplete="off"
+                                    autoFocus
+                                    aria-invalid={Boolean(error)}
+                                    aria-describedby={error ? 'token-error' : undefined}
+                                />
+                            </div>
                         </div>
 
                         {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                                {error}
-                            </div>
+                            <motion.div
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                id="token-error"
+                                role="alert"
+                                className="flex items-start gap-2 rounded-lg border border-critical/20 bg-critical/10 px-3 py-2.5 text-sm text-critical/60"
+                            >
+                                <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden />
+                                <span>{error}</span>
+                            </motion.div>
                         )}
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full btn-primary py-3"
+                            className="btn btn-primary w-full py-2.5"
                         >
                             {loading ? (
-                                <span className="flex items-center justify-center">
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Verificando...
-                                </span>
+                                <>
+                                    <Loader2 size={16} className="animate-spin" aria-hidden />
+                                    Verificando
+                                </>
                             ) : (
-                                'Acceder'
+                                <>
+                                    Acceder
+                                    <ArrowRight size={16} aria-hidden />
+                                </>
                             )}
                         </button>
                     </form>
                 </div>
-            </div>
+
+                <p className="mt-6 text-center text-xs text-ink-500">
+                    Organizate &middot; Plataforma interna de consulta
+                </p>
+            </motion.div>
         </div>
     );
 }

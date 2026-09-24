@@ -1,3 +1,8 @@
+"use client";
+
+import { ChevronDown } from "lucide-react";
+import { useId } from "react";
+
 interface InputProps {
     label: string;
     value: string;
@@ -10,6 +15,8 @@ interface InputProps {
     max?: string;
     min?: string;
     error?: boolean;
+    /** Texto de ayuda bajo el campo. */
+    hint?: string;
 }
 
 export default function Input({
@@ -24,47 +31,71 @@ export default function Input({
     max,
     min,
     error = false,
+    hint,
 }: InputProps) {
+    const id = useId();
+    const hintId = hint ? `${id}-hint` : undefined;
+    const errorClasses = error
+        ? "border-critical focus:border-critical focus:ring-critical/20"
+        : "";
+
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="block font-medium text-gray-700 text-sm">
+            <label htmlFor={id} className="text-sm font-medium text-ink-700">
                 {label}
-                {required && <span className="text-red-500 ml-1">*</span>}
+                {required && (
+                    <span className="ml-1 text-critical" aria-hidden>
+                        *
+                    </span>
+                )}
             </label>
+
             {options ? (
                 <div className="relative">
                     <select
+                        id={id}
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
-                        className={`input appearance-none ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+                        className={`input appearance-none pr-9 ${errorClasses}`}
                         required={required}
                         disabled={disabled}
+                        aria-invalid={error || undefined}
+                        aria-describedby={hintId}
                     >
-                        <option value="">Seleccionar...</option>
+                        <option value="">Seleccionar…</option>
                         {options.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                                 {opt.label}
                             </option>
                         ))}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
+                    <ChevronDown
+                        size={16}
+                        aria-hidden
+                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-400"
+                    />
                 </div>
             ) : (
                 <input
+                    id={id}
                     type={type}
                     placeholder={placeholder}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className={`input ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+                    className={`input ${errorClasses}`}
                     required={required}
                     disabled={disabled}
                     max={max}
                     min={min}
+                    aria-invalid={error || undefined}
+                    aria-describedby={hintId}
                 />
+            )}
+
+            {hint && (
+                <p id={hintId} className="text-xs text-ink-400">
+                    {hint}
+                </p>
             )}
         </div>
     );

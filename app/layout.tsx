@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import Footer from './components/Footer';
+import { Inter, Poppins } from "next/font/google";
 import ProtectedLayout from "./components/ProtectedLayout";
 import { AuthProvider } from "./context/AuthContext";
 import "./globals.css";
@@ -8,11 +7,23 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-inter",
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+  variable: "--font-poppins",
 });
 
 export const metadata: Metadata = {
-  title: "Avalogic - Visor de Histórico",
-  description: "Sistema de consulta de histórico de conversaciones y comunicaciones de Avalogic",
+  title: {
+    default: "Organízate",
+    template: "%s · Organízate",
+  },
+  description:
+    "Plataforma de consulta de Organízate: histórico de comunicaciones, informes de quemadores y corridas RUAF.",
 };
 
 export default function RootLayout({
@@ -21,15 +32,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body className={inter.className}>
+    <html lang="es" className={`${inter.variable} ${poppins.variable}`}>
+      <body>
         <AuthProvider>
-          <ProtectedLayout>
-            <div className="pb-24">
-              {children}
-            </div>
-            <Footer />
-          </ProtectedLayout>
+          <ProtectedLayout>{children}</ProtectedLayout>
         </AuthProvider>
       </body>
     </html>

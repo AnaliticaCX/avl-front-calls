@@ -17,7 +17,7 @@ export default function BackToCallsPanel({ className = "" }: BackToCallsPanelPro
     return (
         <button
             onClick={handleBack}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-primary hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md ${className}`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-ink-700 bg-white border border-hairline rounded-lg hover:bg-surface-sunken hover:border-primary hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md ${className}`}
             type="button"
         >
             <ArrowLeft size={18} />

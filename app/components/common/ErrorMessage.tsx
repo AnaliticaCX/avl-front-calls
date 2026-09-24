@@ -1,27 +1,30 @@
+import { AlertTriangle, RotateCw } from "lucide-react";
+
 interface ErrorMessageProps {
     message: string;
+    /** Si se pasa, muestra un botón para reintentar la consulta. */
+    onRetry?: () => void;
 }
 
-export default function ErrorMessage({ message }: ErrorMessageProps) {
+export default function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
     return (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex">
-                <svg
-                    className="w-5 h-5 text-red-400 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                >
-                    <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
-                    />
-                </svg>
-                <div>
-                    <h3 className="text-sm font-medium text-red-800">Error</h3>
-                    <p className="text-sm text-red-700 mt-1">{message}</p>
-                </div>
+        <div
+            role="alert"
+            className="mb-6 flex items-start gap-3 rounded-xl border border-critical/25 bg-critical-soft p-4"
+        >
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-critical" aria-hidden />
+
+            <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-semibold text-critical">No pudimos completar la consulta</h3>
+                <p className="mt-0.5 break-words text-sm text-ink-600">{message}</p>
             </div>
+
+            {onRetry && (
+                <button onClick={onRetry} className="btn btn-secondary shrink-0 py-1.5 text-xs">
+                    <RotateCw size={14} aria-hidden />
+                    Reintentar
+                </button>
+            )}
         </div>
     );
 }

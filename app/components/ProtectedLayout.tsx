@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Navbar from './Navbar';
+import AppShell from './shell/AppShell';
 
 interface ProtectedLayoutProps {
     children: ReactNode;
@@ -23,20 +23,14 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
         }
     }, [authenticated, pathname, router]);
 
-    if (!authenticated && pathname !== '/login') {
-        return null;
-    }
-
+    // La pantalla de acceso se renderiza sin el chrome de la aplicacion.
     if (pathname === '/login') {
         return <>{children}</>;
     }
 
-    return (
-        <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow pt-28">
-                {children}
-            </main>
-        </div>
-    );
+    if (!authenticated) {
+        return null;
+    }
+
+    return <AppShell>{children}</AppShell>;
 }
