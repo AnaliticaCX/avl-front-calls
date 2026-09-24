@@ -223,11 +223,24 @@ const ESTADO_CUENTA_COLUMNS: { key: keyof EstadoCuentaRow; label: string }[] = [
     { key: 'total_pagado', label: 'TOTAL PAGADO' },
 ];
 
+export interface EstadoCuentaPdfExtras {
+    /** Días en mora a citar en el PDF — puede diferir del automático si el liquidador lo ajusta. */
+    diasMora?: string | number;
+    /** Nombre de quien gestiona el caso. No viene de Athena: lo llena el liquidador a mano. */
+    liquidador?: string;
+}
+
+const sumEstadoCuentaColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuentaRow): number =>
+    pagos.reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
+
 /**
  * Genera el PDF del estado de cuenta con la plantilla legal del avalista
  * (Resfin / Moviaval / Avalogic) que ya viene resuelta desde el backend.
  */
-export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
+export const downloadEstadoCuentaPDF = (
+    data: EstadoCuentaResponse,
+    extras: EstadoCuentaPdfExtras = {}
+): void => {
     const template = ESTADO_CUENTA_TEMPLATES[data.avalista];
 
     const headerRow = ESTADO_CUENTA_COLUMNS.map((c) => `<th>${c.label}</th>`).join('');
@@ -241,8 +254,14 @@ export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
             return `<tr>${cells}</tr>`;
         })
         .join('');
+    const totalsRow = ESTADO_CUENTA_COLUMNS.map((c, i) => {
+        if (i === 0) return '<td><strong>TOTALES</strong></td>';
+        return `<td><strong>${formatCurrency(sumEstadoCuentaColumn(data.pagos, c.key))}</strong></td>`;
+    }).join('');
 
     const totalPagadoFmt = formatCurrency(data.total_pagado as number);
+    const diasMora = extras.diasMora ?? data.dias_mora ?? 0;
+    const liquidador = extras.liquidador?.trim();
     const { mes, anio } = mesAnioEjecucion(data.fecha_ejecucion);
     const antesTabla = template.antesTabla(data.obligacion, mes, anio);
     const fechaEmision = new Date().toLocaleDateString('es-CO', {
@@ -268,6 +287,11 @@ export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
     th { background: #375a6f; color: #fff; padding: 6px 4px; text-align: center; }
     td { border: 1px solid #e5e7eb; padding: 5px 4px; text-align: center; }
     tr:nth-child(even) td { background: #f9fafb; }
+    tfoot td { border-top: 2px solid #375a6f; background: #eef2f6; }
+    .ficha { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; border: 1px solid #e5e7eb;
+        border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 11px; }
+    .ficha div { display: flex; justify-content: space-between; gap: 8px; }
+    .ficha-label { color: #6b7280; font-weight: 600; }
     .cierre { margin-top: 24px; }
     @page { size: portrait; margin: 16mm; }
 </style>
@@ -278,13 +302,20 @@ export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
         <img class="logo" src="${window.location.origin}${template.logo}" alt="${escapeHtmlRaw(template.empresa)}" />
     </div>
     <h1>ESTADO DE CUENTA</h1>
+    <div class="ficha">
+        <div><span class="ficha-label">Obligación</span><span>${escapeHtmlRaw(data.obligacion)}</span></div>
+        <div><span class="ficha-label">Días en mora</span><span>${escapeHtmlRaw(diasMora)}</span></div>
+        <div><span class="ficha-label">Cliente</span><span>${escapeHtmlRaw(data.nombre_cliente)}</span></div>
+        <div><span class="ficha-label">Liquidador</span><span>${escapeHtmlRaw(liquidador || '—')}</span></div>
+    </div>
     <p>${escapeHtmlRaw(template.intro)}</p>
     ${antesTabla ? `<p>${escapeHtmlRaw(antesTabla)}</p>` : ''}
     <table>
         <thead><tr>${headerRow}</tr></thead>
         <tbody>${bodyRows}</tbody>
+        <tfoot><tr>${totalsRow}</tr></tfoot>
     </table>
-    ${template.despuesTabla(totalPagadoFmt, data.dias_mora)}
+    ${template.despuesTabla(totalPagadoFmt, Number(diasMora))}
     <div class="cierre">
         <p>Cordialmente,</p>
         <p>Servicio al cliente<br/>${escapeHtmlRaw(template.empresa)}<br/>${escapeHtmlRaw(template.email)}</p>

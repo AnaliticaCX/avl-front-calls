@@ -86,19 +86,19 @@ export default function ConnectedCallsPage() {
     };
 
     const columns = [
-        {
-            key: 'agent_name',
-            label: 'Agente',
-            render: (_: any, row: any) => (
-                <Stack strong primary={row.agent_name} secondary={`Ext. ${row.agent_id || '—'}`} />
-            )
-        },
         { key: 'date', label: 'Fecha', render: (value: any) => <DateTimeCell value={value} /> },
         {
             key: 'telephone',
             label: 'Teléfono',
             render: (_: any, row: any) => (
-                <Stack primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+                <Stack strong primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+            )
+        },
+        {
+            key: 'agent_name',
+            label: 'Agente',
+            render: (_: any, row: any) => (
+                <Stack primary={row.agent_name} secondary={`Ext. ${row.agent_id || '—'}`} />
             )
         },
         { key: 'time_seg', label: 'Duración', render: (value: any) => <DurationCell seconds={value} /> },

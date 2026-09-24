@@ -86,19 +86,19 @@ export default function NotConnectedCallsPage() {
     };
 
     const columns = [
-        {
-            key: 'agent_name',
-            label: 'Agente',
-            render: (_: any, row: any) => (
-                <Stack strong primary={row.agent_name} secondary={`Ext. ${row.agent_id || '—'}`} />
-            )
-        },
         { key: 'date', label: 'Fecha', render: (value: any) => <DateTimeCell value={value} /> },
         {
             key: 'telephone',
             label: 'Teléfono',
             render: (_: any, row: any) => (
-                <Stack primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+                <Stack strong primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+            )
+        },
+        {
+            key: 'agent_name',
+            label: 'Agente',
+            render: (_: any, row: any) => (
+                <Stack primary={row.agent_name} secondary={`Ext. ${row.agent_id || '—'}`} />
             )
         },
         { key: 'ring_time', label: 'Tiempo de timbre', render: (value: any) => <DurationCell seconds={value} /> },

@@ -86,20 +86,20 @@ export default function Page() {
     };
 
     const columns = [
-        {
-            key: 'description_cod_act',
-            label: 'Tipificación',
-            maxWidth: '18rem',
-            render: (value: any, row: any) => (
-                <Stack strong primary={value} secondary={row.cod_act ? `Código ${row.cod_act}` : undefined} />
-            )
-        },
         { key: 'date', label: 'Fecha', render: (value: any) => <DateTimeCell value={value} /> },
         {
             key: 'telephone',
             label: 'Teléfono',
             render: (_: any, row: any) => (
-                <Stack primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+                <Stack strong primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+            )
+        },
+        {
+            key: 'description_cod_act',
+            label: 'Tipificación',
+            maxWidth: '18rem',
+            render: (value: any, row: any) => (
+                <Stack primary={value} secondary={row.cod_act ? `Código ${row.cod_act}` : undefined} />
             )
         },
         {

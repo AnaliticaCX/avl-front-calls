@@ -89,19 +89,19 @@ export default function GeneralCallsPage() {
     };
 
     const columns = [
-        {
-            key: 'agent_name',
-            label: 'Agente',
-            render: (_: any, row: any) => (
-                <Stack strong primary={row.agent_name} secondary={`Ext. ${row.agent_id || '—'}`} />
-            )
-        },
         { key: 'date', label: 'Fecha', render: (value: any) => <DateTimeCell value={value} /> },
         {
             key: 'telephone',
             label: 'Teléfono',
             render: (_: any, row: any) => (
-                <Stack primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+                <Stack strong primary={row.telephone} secondary={`Cliente ${row.customer_id || '—'}`} />
+            )
+        },
+        {
+            key: 'agent_name',
+            label: 'Agente',
+            render: (_: any, row: any) => (
+                <Stack primary={row.agent_name} secondary={`Ext. ${row.agent_id || '—'}`} />
             )
         },
         { key: 'state', label: 'Tipo', render: (value: any) => <Tag value={value} /> },

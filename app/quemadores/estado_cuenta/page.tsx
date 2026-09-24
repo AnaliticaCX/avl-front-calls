@@ -10,10 +10,13 @@ import PageHeader from "../../components/common/PageHeader";
 import Table, { type Column } from "../../components/common/Table";
 import Input from "../../components/Input";
 import { useAbortable } from "../../hooks/useAbortable";
-import { EstadoCuentaResponse } from "../../types/quemadores";
+import { EstadoCuentaResponse, EstadoCuentaRow } from "../../types/quemadores";
 import { apiClient, isAbortError } from "../../utils/api";
 import { downloadEstadoCuentaPDF } from "../../utils/download";
 import { formatCurrency } from "../../utils/formatters";
+
+const sumColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuentaRow): number =>
+    pagos.reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
 
 export default function EstadoCuentaPage() {
     const [loanNumber, setLoanNumber] = useState("");
@@ -21,6 +24,12 @@ export default function EstadoCuentaPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const { begin, abort } = useAbortable();
+
+    // Van en el PDF pero no vienen de Athena: el liquidador los llena a mano
+    // antes de descargar. Días en mora arranca con el valor del sistema, pero
+    // queda editable por si el liquidador cita uno distinto.
+    const [diasMoraPdf, setDiasMoraPdf] = useState("");
+    const [liquidador, setLiquidador] = useState("");
 
     const cancelar = () => {
         abort();
@@ -45,6 +54,8 @@ export default function EstadoCuentaPage() {
                 signal
             );
             setResult(data);
+            setDiasMoraPdf(String(data.dias_mora ?? 0));
+            setLiquidador("");
         } catch (err) {
             if (isAbortError(err)) return;
             setError(err instanceof Error ? err.message : "Error al consultar el estado de cuenta");
@@ -74,6 +85,18 @@ export default function EstadoCuentaPage() {
             render: (value: any) => <span className="tabular font-semibold text-ink-900">{formatCurrency(value)}</span>,
         },
     ];
+
+    const totales = result
+        ? {
+              capital_pagado: sumColumn(result.pagos, "capital_pagado"),
+              interes_corriente: sumColumn(result.pagos, "interes_corriente"),
+              interes_mora: sumColumn(result.pagos, "interes_mora"),
+              gastos_cobranza: sumColumn(result.pagos, "gastos_cobranza"),
+              aval: sumColumn(result.pagos, "aval"),
+              seguros: sumColumn(result.pagos, "seguros"),
+              total_pagado: sumColumn(result.pagos, "total_pagado"),
+          }
+        : undefined;
 
     return (
         <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
@@ -180,11 +203,32 @@ export default function EstadoCuentaPage() {
 
                         <button
                             type="button"
-                            onClick={() => downloadEstadoCuentaPDF(result)}
+                            onClick={() =>
+                                downloadEstadoCuentaPDF(result, {
+                                    diasMora: diasMoraPdf,
+                                    liquidador,
+                                })
+                            }
                             className="btn btn-primary"
                         >
                             Descargar PDF
                         </button>
+                    </div>
+
+                    <div className="card grid gap-4 p-5 sm:grid-cols-2">
+                        <Input
+                            label="Días en mora (para el PDF)"
+                            value={diasMoraPdf}
+                            onChange={setDiasMoraPdf}
+                            type="number"
+                            hint="Arranca con el valor del sistema; ajústalo si el liquidador cita uno distinto."
+                        />
+                        <Input
+                            label="Liquidador"
+                            value={liquidador}
+                            onChange={setLiquidador}
+                            placeholder="Nombre de quien gestiona el caso"
+                        />
                     </div>
 
                     {result.avalista === "Avalogic" && (
@@ -199,7 +243,13 @@ export default function EstadoCuentaPage() {
                         </div>
                     )}
 
-                    <Table columns={columns} data={result.pagos} expandable={false} />
+                    <Table
+                        columns={columns}
+                        data={result.pagos}
+                        expandable={false}
+                        totalsRow={totales}
+                        totalsLabel="Totales"
+                    />
                 </div>
             )}
         </div>

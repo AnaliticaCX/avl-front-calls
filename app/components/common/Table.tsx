@@ -37,6 +37,13 @@ interface TableProps {
     footer?: ReactNode;
     /** Cambia al paginar para volver a animar la entrada de las filas. */
     animationKey?: string | number;
+    /**
+     * Fila de cierre fija al final (p. ej. totales de una tabla de pagos).
+     * Usa el mismo render/align de cada columna; la primera celda muestra
+     * `totalsLabel` en vez del valor de esa columna.
+     */
+    totalsRow?: Record<string, unknown>;
+    totalsLabel?: string;
 }
 
 const ACTIONS_KEY = "actions";
@@ -58,6 +65,8 @@ export default function Table({
     header,
     footer,
     animationKey,
+    totalsRow,
+    totalsLabel = "Total",
 }: TableProps) {
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [edges, setEdges] = useState({ left: false, right: false });
@@ -275,6 +284,32 @@ export default function Table({
                             );
                         })}
                     </tbody>
+
+                    {totalsRow && (
+                        <tfoot>
+                            <tr className="border-t-2 border-ink-200 bg-surface-sunken font-semibold">
+                                {expandable && <td className="sticky left-0 z-10 bg-surface-sunken" />}
+                                {firstColumn && (
+                                    <td
+                                        className={`sticky z-10 whitespace-nowrap bg-surface-sunken px-5 py-3.5 text-ink-900 ${firstStickyOffset}`}
+                                    >
+                                        {totalsLabel}
+                                    </td>
+                                )}
+                                {restColumns.map((column) => (
+                                    <td
+                                        key={column.key}
+                                        className={`px-5 py-3.5 text-ink-900 ${column.align === "right" ? "text-right" : "text-left"}`}
+                                    >
+                                        {column.render
+                                            ? column.render(totalsRow[column.key], totalsRow)
+                                            : displayValue(totalsRow[column.key])}
+                                    </td>
+                                ))}
+                                {actionsColumn && <td className="bg-surface-sunken" />}
+                            </tr>
+                        </tfoot>
+                    )}
                 </table>
             </div>
 

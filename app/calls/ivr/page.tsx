@@ -85,19 +85,19 @@ export default function IVRCallsPage() {
     };
 
     const columns = [
-        {
-            key: 'rp_name',
-            label: 'Punto IVR',
-            render: (value: any, row: any) => (
-                <Stack strong primary={value} secondary={`ID ${row.rp_id ?? '—'}`} />
-            )
-        },
         { key: 'date', label: 'Fecha', render: (value: any) => <DateTimeCell value={value} /> },
         {
             key: 'ani',
             label: 'ANI',
             render: (_: any, row: any) => (
-                <Stack primary={row.ani} secondary={`Cliente ${row.customer_id || '—'}`} />
+                <Stack strong primary={row.ani} secondary={`Cliente ${row.customer_id || '—'}`} />
+            )
+        },
+        {
+            key: 'rp_name',
+            label: 'Punto IVR',
+            render: (value: any, row: any) => (
+                <Stack primary={value} secondary={`ID ${row.rp_id ?? '—'}`} />
             )
         },
         { key: 'cod_opc_menu', label: 'Opción menú', render: (value: any) => <Tag value={value} /> },

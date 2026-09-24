@@ -224,20 +224,20 @@ export default function ChatsPage() {
     };
 
     const columns = [
-        {
-            key: "customer_name",
-            label: "Cliente",
-            maxWidth: "16rem",
-            render: (_: any, row: ChatRow) => (
-                <Stack strong primary={row.customer_name || "Cliente desconocido"} secondary={row.customer_email} />
-            ),
-        },
         { key: "date", label: "Fecha", render: (value: any) => <DateTimeCell value={value} /> },
         {
             key: "customer_phone",
             label: "Teléfono",
             render: (_: any, row: ChatRow) => (
-                <Stack primary={row.customer_phone} secondary={`Cliente ${row.customer_id || "—"}`} />
+                <Stack strong primary={row.customer_phone} secondary={`Cliente ${row.customer_id || "—"}`} />
+            ),
+        },
+        {
+            key: "customer_name",
+            label: "Cliente",
+            maxWidth: "16rem",
+            render: (_: any, row: ChatRow) => (
+                <Stack primary={row.customer_name || "Cliente desconocido"} secondary={row.customer_email} />
             ),
         },
         {
