@@ -115,17 +115,17 @@ export default function ConnectedCallsPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
             <div className="mb-6">
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                <h1 className="text-4xl font-bold text-ink-900 mb-2">
                     Detalle de llamadas
                 </h1>
-                <p className="text-gray-500">
+                <p className="text-ink-500">
                     Consulta el detalle de llamadas conectadas por teléfono, agente, cliente o rango de fechas.
                 </p>
             </div>
 
-            <div className="card-avalogic p-6 mb-6">
+            <div className="card p-6 mb-6">
                 <form onSubmit={buscarCdr1}>
                     <div className="grid md:grid-cols-2 gap-6 mb-6">
                         <Input
@@ -172,7 +172,7 @@ export default function ConnectedCallsPage() {
                         />
                     </div>
 
-                    <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center gap-4 pt-4 border-t border-hairline">
                         <Button text="Buscar" submit variant="primary" />
                         <Button
                             text="Limpiar Filtros"
@@ -189,23 +189,23 @@ export default function ConnectedCallsPage() {
             {/* Resultados */}
             {!loading && results && results.status === "ok" && Array.isArray(results.data) && results.data && results.data.length > 0 && (
                 <div>
-                    <div className="card-avalogic p-4 mb-4">
+                    <div className="card p-4 mb-4">
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block mb-2 font-semibold text-gray-900 text-sm">
+                                <label className="block mb-2 font-semibold text-ink-900 text-sm">
                                     Ordenar resultados por fecha
                                 </label>
                                 <select
                                     value={sortOrder}
                                     onChange={e => aplicarOrdenamiento(e.target.value as 'desc' | 'asc')}
-                                    className="input-avalogic"
+                                    className="input"
                                 >
                                     <option value="desc">Más reciente primero</option>
                                     <option value="asc">Más antigua primero</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block mb-2 font-semibold text-gray-900 text-sm">
+                                <label className="block mb-2 font-semibold text-ink-900 text-sm">
                                     Resultados por página
                                 </label>
                                 <select
@@ -216,7 +216,7 @@ export default function ConnectedCallsPage() {
                                         setCurrentPage(1);
                                         await buscarCdr1(undefined, 1, newPerPage);
                                     }}
-                                    className="input-avalogic"
+                                    className="input"
                                 >
                                     <option value="10">10</option>
                                     <option value="25">25</option>
@@ -226,70 +226,70 @@ export default function ConnectedCallsPage() {
                             </div>
                         </div>
                     </div>
-                    <div className="mt-2 text-sm text-gray-900 font-medium">
+                    <div className="mt-2 text-sm text-ink-900 font-medium">
                         {results && results.data && results.data.length > 0 && (
                             <>Registros recuperados: <span className="font-bold">{results.data.length}</span></>
                         )}
                     </div>
-                    <div className="card-avalogic overflow-hidden">
+                    <div className="card overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-hairline">
+                                <thead className="bg-surface-sunken">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">
                                             Agente
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">
                                             Fecha
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">
                                             Teléfono
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">
                                             Duración
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">
                                             Estado
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">
                                             Acciones
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-white divide-y divide-hairline">
                                     {displayedResults.map((call, index) => (
-                                        <tr key={call.conn_id || index} className="hover:bg-gray-50">
+                                        <tr key={call.conn_id || index} className="hover:bg-surface-sunken">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
+                                                <div className="text-sm font-medium text-ink-900">
                                                     {call.agent_name || "-"}
                                                 </div>
-                                                <div className="text-xs text-gray-500">
+                                                <div className="text-xs text-ink-500">
                                                     ID: {call.agent_id || "-"}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
+                                                <div className="text-sm text-ink-900">
                                                     {call.date ? formatDate(call.date) : "-"}
                                                 </div>
-                                                <div className="text-xs text-gray-500">
+                                                <div className="text-xs text-ink-500">
                                                     {call.date ? formatTime(call.date) : ""}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
+                                                <div className="text-sm text-ink-900">
                                                     {call.telephone || "-"}
                                                 </div>
-                                                <div className="text-xs text-gray-500">
+                                                <div className="text-xs text-ink-500">
                                                     Cliente: {call.customer_id || "-"}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
+                                                <div className="text-sm text-ink-900">
                                                     {call.time_seg ? `${call.time_seg}s` : "-"}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
+                                                <div className="text-sm text-ink-900">
                                                     {call.hang_up || "-"}
                                                 </div>
                                             </td>
@@ -322,10 +322,10 @@ export default function ConnectedCallsPage() {
                                 await buscarCdr1(undefined, 1);
                             }}
                         />
-                        <div className="text-sm text-gray-700 mt-2">
+                        <div className="text-sm text-ink-700 mt-2">
                             Página {currentPage} de {totalPages}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-ink-500">
                             Mostrando {displayedResults.length} de {totalCount} llamadas conectadas
                         </div>
                     </div>

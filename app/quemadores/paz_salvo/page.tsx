@@ -1,13 +1,11 @@
 "use client";
 
-import Button from "../../components/Button";
-import Breadcrumbs from "../../components/common/Breadcrumbs";
-import EmptyState from "../../components/common/EmptyState";
-import ErrorMessage from "../../components/common/ErrorMessage";
+import { BadgeCheck } from "lucide-react";
+import { ExportButton, loanStatusTone, Stack, StatusPill } from "../../components/common/cells";
+import GestionObservation from "../../components/common/GestionObservation";
 import Filters from "../../components/common/Filters";
-import LoadingSpinner from "../../components/common/LoadingSpinner";
 import PageHeader from "../../components/common/PageHeader";
-import Table from "../../components/common/Table";
+import SearchResults from "../../components/common/SearchResults";
 import { useFilters } from "../../hooks/useFilters";
 import { useSearch } from "../../hooks/useSearch";
 import { PazSalvoRecord } from "../../types/quemadores";
@@ -18,8 +16,13 @@ interface PazSalvoFilters {
     loan_numbers: string;
 }
 
+function Money({ value, tone }: { value: unknown; tone?: "positive" | "critical" }) {
+    const color = tone === "positive" ? "text-positive" : tone === "critical" ? "text-critical" : "text-ink-700";
+    return <span className={`tabular font-medium ${color}`}>{formatCurrency(value as number)}</span>;
+}
+
 export default function PazSalvoPage() {
-    const { results, loading, error, search, setError } = useSearch('/api/quemadores/paz_salvo/search');
+    const { results, loading, error, search, setError, cancel, clear } = useSearch('/api/quemadores/paz_salvo/search');
     const { filters, updateFilter, clearFilters } = useFilters<PazSalvoFilters>({
         loan_numbers: '',
     });
@@ -28,7 +31,7 @@ export default function PazSalvoPage() {
         { name: 'loan_numbers', label: 'Obligaciones', placeholder: 'Ej: 12345, 67890 (separadas por coma)' },
     ];
 
-    const handleSearch = async (e: React.FormEvent) => {
+    const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -42,7 +45,7 @@ export default function PazSalvoPage() {
 
     const handleClear = () => {
         clearFilters();
-        setError('');
+        clear();
     };
 
     const handleExportXLSX = () => {
@@ -52,60 +55,74 @@ export default function PazSalvoPage() {
     };
 
     const columns = [
-        { key: 'obligacion', label: 'Obligación' },
-        { key: 'tipo_documento', label: 'Tipo Doc.' },
-        { key: 'documento', label: 'Documento' },
-        { key: 'nombre_cliente', label: 'Cliente' },
-        { key: 'email', label: 'Email' },
-        { key: 'linea', label: 'Línea' },
-        { key: 'placa', label: 'Placa' },
-        { key: 'estado_obligacion', label: 'Estado Obligación' },
-        { key: 'resultado_gestion', label: 'Resultado Gestión' },
+        {
+            key: 'obligacion',
+            label: 'Obligación',
+            render: (value: any, row: any) => <Stack strong mono primary={value} secondary={row.linea} />
+        },
+        {
+            key: 'nombre_cliente',
+            label: 'Cliente',
+            maxWidth: '16rem',
+            render: (value: any, row: any) => (
+                <Stack primary={value} secondary={`${row.tipo_documento ?? ''} ${row.documento ?? ''}`.trim() || undefined} />
+            )
+        },
+        { key: 'estado_obligacion', label: 'Estado', render: (value: any) => <StatusPill value={value} tone={loanStatusTone(String(value))} /> },
+        { key: 'resultado_gestion', label: 'Resultado gestión', render: (value: any) => <StatusPill value={value} /> },
         {
             key: 'fecha_gestion',
-            label: 'Fecha Gestión',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{value ? formatDateTime(value) : '-'}</div>
-            )
+            label: 'Gestión',
+            render: (value: any) => (value ? formatDateTime(value) : '—')
         },
-        {
-            key: 'fecha_vencimiento',
-            label: 'Fecha Vencimiento',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{value ? formatDate(value) : '-'}</div>
-            )
-        },
-        {
-            key: 'valor_acuerdo',
-            label: 'Valor Acuerdo',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{formatCurrency(value)}</div>
-            )
-        },
+        { key: 'valor_acuerdo', label: 'Acuerdo', align: 'right' as const, render: (value: any) => <Money value={value} /> },
         {
             key: 'valor_pagado_acuerdo',
-            label: 'Valor Pagado Acuerdo',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{formatCurrency(value)}</div>
-            )
+            label: 'Pagado',
+            align: 'right' as const,
+            render: (value: any) => <Money value={value} tone="positive" />
         },
         {
             key: 'diferencia',
             label: 'Diferencia',
+            align: 'right' as const,
+            render: (value: any) => <Money value={value} tone={Number(value) > 0 ? "critical" : undefined} />
+        },
+        {
+            key: 'cumple_condiciones',
+            label: 'Cumple condiciones',
             render: (value: any) => (
-                <div className="text-sm text-gray-900">{formatCurrency(value)}</div>
+                <StatusPill
+                    value={value === 'Si' ? 'Sí' : value}
+                    tone={value === 'Si' ? 'positive' : value === 'No' ? 'critical' : undefined}
+                />
             )
+        },
+        { key: 'email', label: 'Email', secondary: true },
+        { key: 'placa', label: 'Placa', secondary: true },
+        { key: 'chasis', label: 'Chasis', secondary: true },
+        { key: 'modelo', label: 'Modelo', secondary: true },
+        { key: 'color', label: 'Color', secondary: true },
+        { key: 'motor', label: 'Motor', secondary: true },
+        {
+            key: 'fecha_vencimiento',
+            label: 'Vencimiento',
+            secondary: true,
+            render: (value: any) => (value ? formatDate(value) : '—')
+        },
+        {
+            key: 'observacion_gestion',
+            label: 'Observación gestión',
+            secondary: true,
+            wide: true,
+            render: (value: any) => <GestionObservation text={value} />
         },
     ];
 
     return (
-        <div className="max-w-7xl mx-auto">
-            <Breadcrumbs items={[
-                { label: 'Quemadores', href: '/quemadores' },
-                { label: 'Paz y Salvo', href: '/quemadores/paz_salvo' }
-            ]} />
-
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
             <PageHeader
+                icon={BadgeCheck}
                 title="Paz y Salvo"
                 description="Consulta las gestiones, acuerdos de pago y valores pagados por número de obligación."
             />
@@ -117,30 +134,20 @@ export default function PazSalvoPage() {
                 onSubmit={handleSearch}
                 onClear={handleClear}
                 loading={loading}
+                onCancel={cancel}
             />
 
-            {loading && <LoadingSpinner text="Consultando paz y salvo..." />}
-            {error && <ErrorMessage message={error} />}
-
-            {!loading && results && results.data && results.data.length > 0 && (
-                <div>
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-                        <div className="text-sm text-gray-900 font-medium">
-                            Registros recuperados: <span className="font-bold">{results.total}</span>
-                        </div>
-                        <Button text="Descargar Excel" onClick={handleExportXLSX} variant="secondary" />
-                    </div>
-
-                    <Table columns={columns} data={results.data} />
-                </div>
-            )}
-
-            {!loading && results && results.data && results.data.length === 0 && (
-                <EmptyState
-                    title="No se encontraron resultados"
-                    message="No hay registros de paz y salvo para las obligaciones ingresadas."
-                />
-            )}
+            <SearchResults
+                columns={columns}
+                results={results}
+                loading={loading}
+                onCancel={cancel}
+                error={error}
+                itemName="registro"
+                getRowId={(row, i) => `${row.obligacion ?? ''}-${i}`}
+                actions={<ExportButton onClick={handleExportXLSX} />}
+                emptyMessage="No hay registros de paz y salvo para las obligaciones ingresadas."
+            />
         </div>
     );
 }

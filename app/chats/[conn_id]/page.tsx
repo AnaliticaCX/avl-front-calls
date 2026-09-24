@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Button from "../../components/Button";
@@ -64,24 +65,6 @@ export default function ChatDetailPage() {
         downloadJSON(data, `conversacion_${connId}.json`);
     };
 
-    const descargarTodasConversaciones = async () => {
-        try {
-            const savedState = sessionStorage.getItem('chatSearchState');
-            if (!savedState) {
-                alert('No hay resultados de búsqueda guardados');
-                return;
-            }
-            const state = JSON.parse(savedState);
-            if (!state.results?.data) {
-                alert('No hay conversaciones para descargar');
-                return;
-            }
-            downloadJSON(state.results.data, `conversaciones_${new Date().toISOString().split('T')[0]}.json`);
-        } catch (err) {
-            alert('Error al descargar las conversaciones');
-        }
-    };
-
     useEffect(() => {
         async function fetchDetail() {
             try {
@@ -104,7 +87,7 @@ export default function ChatDetailPage() {
 
     if (loading) {
         return (
-            <div className="max-w-7xl mx-auto">
+            <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
                 <LoadingSpinner text="Cargando conversación..." />
             </div>
         );
@@ -112,15 +95,13 @@ export default function ChatDetailPage() {
 
     if (error) {
         return (
-            <div className="max-w-7xl mx-auto">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
+                <div className="bg-critical-soft border border-critical/25 rounded-lg p-6">
                     <div className="flex items-center mb-4">
-                        <svg className="w-6 h-6 text-red-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <h3 className="text-lg font-medium text-red-800">Error</h3>
+                        <AlertCircle size={22} className="mr-3 text-critical" aria-hidden />
+                        <h3 className="text-lg font-medium text-critical">Error</h3>
                     </div>
-                    <p className="text-sm text-red-700 mb-4">{error}</p>
+                    <p className="text-sm text-critical mb-4">{error}</p>
                     <Button
                         text="Volver a búsqueda"
                         onClick={() => router.push("/chats")}
@@ -138,7 +119,7 @@ export default function ChatDetailPage() {
     const { summary, conversation } = data;
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
             {/* Header */}
             <div className="mb-6 flex gap-3">
                 <Button
@@ -151,82 +132,77 @@ export default function ChatDetailPage() {
                     onClick={descargarConversacion}
                     variant="secondary"
                 />
-                <Button
-                    text="Descargar todas las conversaciones"
-                    onClick={descargarTodasConversaciones}
-                    variant="secondary"
-                />
             </div>
 
             {/* Summary Card */}
             <div className="card p-6 mb-6">
                 <div className="flex justify-between items-start mb-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                        <h1 className="text-3xl font-bold text-ink-900 mb-2">
                             {summary.customer_name}
                         </h1>
-                        <p className="text-sm text-gray-500">
-                            Conn ID: <span className="font-mono font-medium text-gray-700">{summary.conn_id}</span>
+                        <p className="text-sm text-ink-500">
+                            Conn ID: <span className="font-mono font-medium text-ink-700">{summary.conn_id}</span>
                         </p>
                         {summary.is_transferred && summary.all_agents && summary.all_agents.length > 1 && (
                             <div className="mt-2 flex items-center gap-2">
-                                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                                <span className="px-3 py-1 bg-caution-soft text-caution rounded-full text-sm font-medium">
                                     Conversación transferida
                                 </span>
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-ink-500">
                                     Agentes: {summary.all_agents.join(' → ')}
                                 </span>
                             </div>
                         )}
                     </div>
                     {summary.feeling && (
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${summary.feeling === 'positive' ? 'bg-green-100 text-green-700' :
-                            summary.feeling === 'negative' ? 'bg-red-100 text-red-700' :
-                                'bg-gray-100 text-gray-700'
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${summary.feeling === 'positive' ? 'bg-positive-soft text-positive' :
+                            summary.feeling === 'negative' ? 'bg-critical-soft text-critical' :
+                                'bg-ink-100 text-ink-700'
                             }`}>
                             {summary.feeling}
                         </span>
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-hairline">
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Customer ID</span>
-                        <p className="font-medium text-gray-900">{summary.customer_id || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Customer ID</span>
+                        <p className="font-medium text-ink-900">{summary.customer_id || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Teléfono</span>
-                        <p className="font-medium text-gray-900">{summary.customer_phone || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Teléfono</span>
+                        <p className="font-medium text-ink-900">{summary.customer_phone || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Email</span>
-                        <p className="font-medium text-gray-900">{summary.customer_email || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Email</span>
+                        <p className="font-medium text-ink-900">{summary.customer_email || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Canal</span>
-                        <p className="font-medium text-gray-900">{summary.channel}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Canal</span>
+                        <p className="font-medium text-ink-900">{summary.channel}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Agente</span>
-                        <p className="font-medium text-gray-900">{summary.agent_name}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Agente</span>
+                        <p className="font-medium text-ink-900">{summary.agent_name}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">ID Agente</span>
-                        <p className="font-medium text-gray-900">{summary.agent_id}</p>
+                        <span className="text-sm text-ink-500 block mb-1">ID Agente</span>
+                        <p className="font-medium text-ink-900">{summary.agent_id}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Fecha</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-sm text-ink-500 block mb-1">Fecha</span>
+                        <p className="font-medium text-ink-900">
                             {formatDateTime(summary.date)}
                         </p>
                     </div>
                     {summary.chat_duration && (
                         <div>
-                            <span className="text-sm text-gray-500 block mb-1">Duración</span>
-                            <p className="font-medium text-gray-900">{summary.chat_duration}</p>
+                            <span className="text-sm text-ink-500 block mb-1">Duración</span>
+                            <p className="font-medium text-ink-900">{summary.chat_duration}</p>
                         </div>
                     )}
                 </div>
@@ -234,7 +210,7 @@ export default function ChatDetailPage() {
 
             {/* Conversation */}
             <div className="card p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                <h2 className="text-2xl font-bold text-ink-900 mb-6">
                     Conversación
                 </h2>
 
@@ -248,22 +224,22 @@ export default function ChatDetailPage() {
 
                             // Detectar si es mensaje de WhatsApp del usuario
                             const isWhatsAppCustomer = isCustomer && message.channel?.toLowerCase() === 'whatsapp';                            // Definir estilos según el tipo de mensaje
-                            let bgColor = 'bg-gray-100';
-                            let textColor = 'text-gray-900';
-                            let nameColor = 'text-gray-700';
-                            let timeColor = 'text-gray-500';
-                            let tagBg = 'bg-gray-200';
-                            let tagText = 'text-gray-600';
+                            let bgColor = 'bg-ink-100';
+                            let textColor = 'text-ink-900';
+                            let nameColor = 'text-ink-700';
+                            let timeColor = 'text-ink-500';
+                            let tagBg = 'bg-ink-200';
+                            let tagText = 'text-ink-600';
                             let alignment = 'justify-start';
 
                             if (isWhatsAppCustomer) {
                                 // Usuario de WhatsApp: fondo azul claro con texto azul oscuro (derecha)
-                                bgColor = 'bg-blue-100';
-                                textColor = 'text-blue-900';
-                                nameColor = 'text-blue-700';
-                                timeColor = 'text-blue-600';
-                                tagBg = 'bg-blue-200';
-                                tagText = 'text-blue-700';
+                                bgColor = 'bg-info-soft';
+                                textColor = 'text-info';
+                                nameColor = 'text-info';
+                                timeColor = 'text-info';
+                                tagBg = 'bg-info/20';
+                                tagText = 'text-info';
                                 alignment = 'justify-end';
                             } else if (isCustomer) {
                                 // Otros clientes: fondo azul con texto blanco (derecha)
@@ -276,12 +252,12 @@ export default function ChatDetailPage() {
                                 alignment = 'justify-end';
                             } else if (isBot) {
                                 // Bot: verde (izquierda)
-                                bgColor = 'bg-green-100';
-                                textColor = 'text-green-900';
-                                nameColor = 'text-green-700';
-                                timeColor = 'text-green-600';
-                                tagBg = 'bg-green-200';
-                                tagText = 'text-green-700';
+                                bgColor = 'bg-positive-soft';
+                                textColor = 'text-positive';
+                                nameColor = 'text-positive';
+                                timeColor = 'text-positive';
+                                tagBg = 'bg-positive/20';
+                                tagText = 'text-positive';
                                 alignment = 'justify-start';
                             }
                             // isAgent: gris (izquierda) - ya definido por defecto

@@ -1,131 +1,124 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Mail, MessageCircle, MessageSquare, Phone, Search } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import FeatureCard from "./components/FeatureCard";
-import Hero from "./components/Hero";
+import PageContainer from "./components/common/PageContainer";
+import { NAV_SECTIONS } from "./config/navigation";
+
+/** Tono de acento por area, en clases estaticas para que Tailwind las conserve. */
+const ACCENTS: Record<string, { icon: string; bar: string }> = {
+    accent: {
+        icon: "bg-accent-500/10 text-accent-600",
+        bar: "bg-accent-500",
+    },
+    caution: {
+        icon: "bg-caution/10 text-caution",
+        bar: "bg-caution",
+    },
+    info: {
+        icon: "bg-info/10 text-info",
+        bar: "bg-info",
+    },
+};
 
 export default function Home() {
-  const features = [
-    {
-      title: "Búsqueda de Registros",
-      description: "Filtra el histórico por ID de conversación, cliente, teléfono, email y rango de fechas específico para encontrar exactamente lo que necesitas.",
-      icon: Search,
-      colorClass: "bg-[#375a6f]",
-      delay: 0.2
-    },
-    {
-      title: "Visualización Detallada",
-      description: "Consulta el contenido completo de conversaciones, mensajes y llamadas con toda la información asociada y metadatos relevantes.",
-      icon: FileText,
-      colorClass: "bg-[#2f5b6d]",
-      delay: 0.4
-    },
-    {
-      title: "Llamadas y CDR",
-      description: "Accede al histórico completo de llamadas con filtros por estado: todas, conectadas y no conectadas, con detalles de duración y costos.",
-      icon: Phone,
-      colorClass: "bg-[#233d4a]",
-      delay: 0.6
-    }
-  ];
-
-  return (
-    <div className="flex flex-col gap-0">
-      {/* Hero Section */}
-      <Hero />
-
-      {/* Features Section */}
-      <section className="py-24 px-6 bg-white relative z-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-bold text-primary-dark mb-4"
+    return (
+        <PageContainer>
+            {/* Encabezado */}
+            <motion.header
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="mb-8"
             >
-              Funcionalidades del Visor
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-lg text-text-body max-w-2xl mx-auto"
-            >
-              Herramientas avanzadas de consulta para acceder al histórico completo de comunicaciones de tu empresa.
-            </motion.p>
-          </div>
+                <h1 className="text-2xl font-semibold sm:text-3xl">
+                    Bienvenido a <span className="text-accent-600">Organízate</span>
+                </h1>
+                <p className="mt-2 max-w-2xl text-ink-500">
+                    Tres áreas de consulta sobre la misma base: el histórico de comunicaciones,
+                    los informes de cartera quemada y las corridas de RUAF.
+                </p>
+            </motion.header>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <FeatureCard
-                key={index}
-                title={feature.title}
-                description={feature.description}
-                icon={feature.icon}
-                colorClass={feature.colorClass}
-                delay={feature.delay}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
+            {/* Áreas */}
+            <div className="grid gap-5 lg:grid-cols-3">
+                {NAV_SECTIONS.map((section, si) => {
+                    const tone = ACCENTS[section.accent] ?? ACCENTS.accent;
+                    const SectionIcon = section.icon;
 
-      {/* CTA Section */}
-      <section className="relative py-24 px-6 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-principal opacity-5" />
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]" />
+                    return (
+                        <motion.section
+                            key={section.id}
+                            initial={{ opacity: 0, y: 14 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                                duration: 0.45,
+                                delay: 0.06 * si,
+                                ease: [0.16, 1, 0.3, 1],
+                            }}
+                            className="card card-interactive flex flex-col overflow-hidden"
+                        >
+                            {/* Filo superior con el color del area */}
+                            <span aria-hidden className={`h-1 w-full ${tone.bar}`} />
 
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.h2
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold mb-6 text-primary-dark"
-          >
-            Consulta el Histórico Completo
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-xl text-text-body mb-10 leading-relaxed"
-          >
-            Accede a todos los registros de conversaciones, mensajes y llamadas almacenados en la plataforma de Avalogic.
-          </motion.p>
+                            <div className="flex flex-1 flex-col p-5">
+                                <div className="mb-4 flex items-center gap-3">
+                                    <span
+                                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.icon}`}
+                                    >
+                                        <SectionIcon size={20} aria-hidden />
+                                    </span>
+                                    <div className="min-w-0">
+                                        <h2 className="truncate text-base font-semibold">
+                                            {section.label}
+                                        </h2>
+                                        <p className="text-xs text-ink-400">
+                                            {section.items.length}{" "}
+                                            {section.items.length === 1 ? "módulo" : "módulos"}
+                                        </p>
+                                    </div>
+                                </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-            className="flex gap-4 justify-center flex-wrap"
-          >
-            <Link href="/chats" className="btn-primary px-8 py-4 text-lg shadow-xl shadow-primary/20">
-              <MessageSquare size={20} />
-              Chats
-            </Link>
-            <Link href="/sms" className="btn-secondary px-8 py-4 text-lg">
-              <MessageCircle size={20} />
-              SMS
-            </Link>
-            <Link href="/calls" className="btn-secondary px-8 py-4 text-lg">
-              <Phone size={20} />
-              Llamadas
-            </Link>
-            <Link href="/emails" className="btn-secondary px-8 py-4 text-lg">
-              <Mail size={20} />
-              Correos
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-
-
-    </div>
-  );
+                                <ul className="flex flex-1 flex-col gap-1">
+                                    {section.items.map((item) => {
+                                        const ItemIcon = item.icon;
+                                        return (
+                                            <li key={item.href}>
+                                                <Link
+                                                    href={item.href}
+                                                    className="group/item flex items-center gap-3 rounded-lg px-2.5 py-2.5 transition-colors hover:bg-surface-sunken"
+                                                >
+                                                    <ItemIcon
+                                                        size={17}
+                                                        className="shrink-0 text-ink-400 transition-colors group-hover/item:text-accent-600"
+                                                        aria-hidden
+                                                    />
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="block truncate text-sm font-medium text-ink-800">
+                                                            {item.label}
+                                                        </span>
+                                                        {item.blurb && (
+                                                            <span className="block truncate text-xs text-ink-400">
+                                                                {item.blurb}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    <ArrowRight
+                                                        size={15}
+                                                        className="shrink-0 text-ink-300 transition-transform group-hover/item:translate-x-0.5"
+                                                        aria-hidden
+                                                    />
+                                                </Link>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        </motion.section>
+                    );
+                })}
+            </div>
+        </PageContainer>
+    );
 }

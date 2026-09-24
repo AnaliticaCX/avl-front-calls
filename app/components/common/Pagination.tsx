@@ -1,3 +1,7 @@
+"use client";
+
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 interface PaginationProps {
     currentPage: number;
     totalPages: number;
@@ -7,123 +11,102 @@ interface PaginationProps {
     onPerPageChange?: (perPage: number) => void;
 }
 
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+/** Ventana de paginas alrededor de la actual, con elipsis en los extremos. */
+function pageWindow(current: number, total: number): (number | "gap")[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 4) return [1, 2, 3, 4, 5, "gap", total];
+    if (current >= total - 3) return [1, "gap", total - 4, total - 3, total - 2, total - 1, total];
+    return [1, "gap", current - 1, current, current + 1, "gap", total];
+}
+
+const ARROW_BTN =
+    "flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-surface text-ink-500 transition-all duration-200 hover:border-accent-300 hover:bg-accent-50 hover:text-accent-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-hairline disabled:hover:bg-surface disabled:hover:text-ink-500";
+
 export default function Pagination({
     currentPage,
     totalPages,
     totalItems,
     perPage,
     onPageChange,
-    onPerPageChange
+    onPerPageChange,
 }: PaginationProps) {
-    const getPageNumbers = () => {
-        const pages = [];
-        const maxVisible = 5;
-
-        if (totalPages <= maxVisible) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
-        } else {
-            if (currentPage <= 3) {
-                pages.push(1, 2, 3, 4, "...", totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-            } else {
-                pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
-            }
-        }
-
-        return pages;
-    };
+    const pages = Math.max(totalPages, 1);
 
     return (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-4 rounded-b-lg">
-            <div className="flex-1 flex justify-between sm:hidden">
+        <nav
+            aria-label="Paginación"
+            className="flex flex-col gap-3 border-t border-hairline bg-surface-sunken/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+            {/* Recuento y tamaño de página */}
+            <div className="flex items-center gap-3 text-sm text-ink-500">
+                <span>
+                    Página <span className="font-medium text-ink-900">{currentPage}</span> de{" "}
+                    <span className="font-medium text-ink-900">{pages}</span>
+                    <span className="hidden sm:inline">
+                        {" · "}
+                        <span className="tabular">{totalItems.toLocaleString("es-CO")}</span>{" "}
+                        {totalItems === 1 ? "resultado" : "resultados"}
+                    </span>
+                </span>
+
+                {onPerPageChange && perPage && (
+                    <select
+                        value={perPage}
+                        onChange={(e) => onPerPageChange(Number(e.target.value))}
+                        aria-label="Resultados por página"
+                        className="rounded-full border border-hairline bg-surface px-3 py-1.5 text-sm text-ink-700 outline-none transition-colors hover:border-accent-300 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20"
+                    >
+                        {PER_PAGE_OPTIONS.map((n) => (
+                            <option key={n} value={n}>
+                                {n} por pág.
+                            </option>
+                        ))}
+                    </select>
+                )}
+            </div>
+
+            {/* Controles */}
+            <div className="flex items-center gap-1">
                 <button
                     onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={currentPage <= 1}
+                    aria-label="Página anterior"
+                    className={ARROW_BTN}
                 >
-                    Anterior
+                    <ChevronLeft size={16} />
                 </button>
+
+                {pageWindow(currentPage, pages).map((page, i) =>
+                    page === "gap" ? (
+                        <span key={`gap-${i}`} aria-hidden className="px-1 text-sm text-ink-300">
+                            …
+                        </span>
+                    ) : (
+                        <button
+                            key={page}
+                            onClick={() => onPageChange(page)}
+                            aria-current={page === currentPage ? "page" : undefined}
+                            className={`h-9 min-w-9 rounded-full px-2.5 text-sm font-medium tabular-nums transition-all duration-200 active:scale-95 ${page === currentPage
+                                ? "bg-accent-500 text-white shadow-[var(--shadow-accent)]"
+                                : "text-ink-500 hover:bg-accent-50 hover:text-accent-700"
+                                }`}
+                        >
+                            {page}
+                        </button>
+                    )
+                )}
+
                 <button
                     onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={currentPage >= pages}
+                    aria-label="Página siguiente"
+                    className={ARROW_BTN}
                 >
-                    Siguiente
+                    <ChevronRight size={16} />
                 </button>
             </div>
-
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                    <p className="text-sm text-gray-700 flex items-center gap-2">
-                        Mostrando página{" "}
-                        <span className="font-medium">{currentPage}</span> de{" "}
-                        <span className="font-medium">{totalPages}</span>
-                        {" "}({totalItems} resultados totales)
-                        {onPerPageChange && perPage && (
-                            <select
-                                value={perPage}
-                                onChange={(e) => onPerPageChange(Number(e.target.value))}
-                                className="ml-4 border-gray-300 rounded-md text-sm text-gray-600 focus:ring-primary focus:border-primary"
-                            >
-                                <option value="10">10 por pág</option>
-                                <option value="25">25 por pág</option>
-                                <option value="50">50 por pág</option>
-                                <option value="100">100 por pág</option>
-                            </select>
-                        )}
-                    </p>
-                </div>
-                <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <button
-                            onClick={() => onPageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span className="sr-only">Anterior</span>
-                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-
-                        {getPageNumbers().map((page, idx) => (
-                            typeof page === "number" ? (
-                                <button
-                                    key={idx}
-                                    onClick={() => onPageChange(page)}
-                                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-all ${page === currentPage
-                                        ? "z-10 bg-blue-600 border-blue-600 text-white shadow-md"
-                                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                                        }`}
-                                >
-                                    {page}
-                                </button>
-                            ) : (
-                                <span
-                                    key={idx}
-                                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                                >
-                                    {page}
-                                </span>
-                            )
-                        ))}
-
-                        <button
-                            onClick={() => onPageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span className="sr-only">Siguiente</span>
-                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                    </nav>
-                </div>
-            </div>
-        </div>
+        </nav>
     );
 }

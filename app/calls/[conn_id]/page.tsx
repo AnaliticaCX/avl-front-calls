@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Button from "../../components/Button";
@@ -46,7 +47,7 @@ export default function CallDetailPage() {
 
     if (loading) {
         return (
-            <div className="max-w-7xl mx-auto">
+            <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
                 <LoadingSpinner text="Cargando detalle de la llamada..." />
             </div>
         );
@@ -54,15 +55,13 @@ export default function CallDetailPage() {
 
     if (error) {
         return (
-            <div className="max-w-7xl mx-auto">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
+                <div className="bg-critical-soft border border-critical/25 rounded-lg p-6">
                     <div className="flex items-center mb-4">
-                        <svg className="w-6 h-6 text-red-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <h3 className="text-lg font-medium text-red-800">Error</h3>
+                        <AlertCircle size={22} className="mr-3 text-critical" aria-hidden />
+                        <h3 className="text-lg font-medium text-critical">Error</h3>
                     </div>
-                    <p className="text-sm text-red-700 mb-4">{error}</p>
+                    <p className="text-sm text-critical mb-4">{error}</p>
                     <Button
                         text="Volver"
                         onClick={() => router.back()}
@@ -80,7 +79,7 @@ export default function CallDetailPage() {
     const { header: summary, details } = data;
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
             <div className="mb-6 flex gap-3">
                 <Button
                     text="← Volver"
@@ -94,40 +93,40 @@ export default function CallDetailPage() {
                 />
             </div>
 
-            <div className="card-avalogic p-6 mb-6">
+            <div className="card p-6 mb-6">
                 <div className="flex justify-between items-start mb-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                        <h1 className="text-3xl font-bold text-ink-900 mb-2">
                             Detalle de Llamada
                         </h1>
-                        <p className="text-sm text-gray-500">
-                            ID de Conexión: <span className="font-mono font-medium text-gray-900">{summary.conn_id}</span>
+                        <p className="text-sm text-ink-500">
+                            ID de Conexión: <span className="font-mono font-medium text-ink-900">{summary.conn_id}</span>
                         </p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${summary.state?.toLowerCase().includes('answered') || summary.state?.toLowerCase().includes('contestad')
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-positive-soft text-positive'
+                        : 'bg-critical-soft text-critical'
                         }`}>
                         {summary.state || "Desconocido"}
                     </span>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-hairline">
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Teléfono</span>
-                        <p className="font-medium text-gray-900">{summary.telephone || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Teléfono</span>
+                        <p className="font-medium text-ink-900">{summary.telephone || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Customer ID</span>
-                        <p className="font-medium text-gray-900">{summary.customer_id || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Customer ID</span>
+                        <p className="font-medium text-ink-900">{summary.customer_id || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Agente</span>
-                        <p className="font-medium text-gray-900">{summary.agent_name || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Agente</span>
+                        <p className="font-medium text-ink-900">{summary.agent_name || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Fecha</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-sm text-ink-500 block mb-1">Fecha</span>
+                        <p className="font-medium text-ink-900">
                             {summary.date ? formatDateTime(summary.date) : "-"}
                         </p>
                     </div>
@@ -135,48 +134,48 @@ export default function CallDetailPage() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Duración</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-sm text-ink-500 block mb-1">Duración</span>
+                        <p className="font-medium text-ink-900">
                             {summary.duration_sec ? `${summary.duration_sec}s` : "-"}
                         </p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Tiempo de Espera</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-sm text-ink-500 block mb-1">Tiempo de Espera</span>
+                        <p className="font-medium text-ink-900">
                             {summary.waiting_sec !== null ? `${summary.waiting_sec}s` : "-"}
                         </p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Canal</span>
-                        <p className="font-medium text-gray-900">{summary.channel || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Canal</span>
+                        <p className="font-medium text-ink-900">{summary.channel || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Campaña</span>
-                        <p className="font-medium text-gray-900">{summary.campaign || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Campaña</span>
+                        <p className="font-medium text-ink-900">{summary.campaign || "-"}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Cola</span>
-                        <p className="font-medium text-gray-900">{summary.queue || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">Cola</span>
+                        <p className="font-medium text-ink-900">{summary.queue || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">ANI</span>
-                        <p className="font-medium text-gray-900">{summary.ani || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">ANI</span>
+                        <p className="font-medium text-ink-900">{summary.ani || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">ID de Llamada</span>
-                        <p className="font-medium text-gray-900 text-xs">{summary.call_id || "-"}</p>
+                        <span className="text-sm text-ink-500 block mb-1">ID de Llamada</span>
+                        <p className="font-medium text-ink-900 text-xs">{summary.call_id || "-"}</p>
                     </div>
                     <div>
-                        <span className="text-sm text-gray-500 block mb-1">Grabación</span>
+                        <span className="text-sm text-ink-500 block mb-1">Grabación</span>
                         {summary.recording ? (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-positive-soft text-positive">
                                 Disponible
                             </span>
                         ) : (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-ink-100 text-ink-800">
                                 No disponible
                             </span>
                         )}
@@ -188,46 +187,46 @@ export default function CallDetailPage() {
                 <div className="space-y-6">
                     {/* CDR 1 Details */}
                     {details.cdr1 && details.cdr1.length > 0 && (
-                        <div className="card-avalogic p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        <div className="card p-6">
+                            <h2 className="text-xl font-bold text-ink-900 mb-4">
                                 Detalle Llamada Conectada
                             </h2>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                <table className="min-w-full divide-y divide-hairline">
+                                    <thead className="bg-surface-sunken">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Fecha</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Agente</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Teléfono</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Destino</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Duración</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Actividad</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Finalización</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Fecha</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Agente</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Teléfono</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Destino</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Duración</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Actividad</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Finalización</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-white divide-y divide-hairline">
                                         {details.cdr1.map((record, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50">
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                            <tr key={idx} className="hover:bg-surface-sunken">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.date ? formatDateTime(record.date) : "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.agent_name || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.telephone || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.destiny || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.time_seg ? `${record.time_seg}s` : "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     <div className="font-medium">{record.cod_act || "-"}</div>
-                                                    <div className="text-xs text-gray-500">{record.description_cod_act || ""}</div>
+                                                    <div className="text-xs text-ink-500">{record.description_cod_act || ""}</div>
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.hang_up || "-"}
                                                 </td>
                                             </tr>
@@ -240,41 +239,41 @@ export default function CallDetailPage() {
 
                     {/* CDR 5 Details */}
                     {details.cdr5 && details.cdr5.length > 0 && (
-                        <div className="card-avalogic p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        <div className="card p-6">
+                            <h2 className="text-xl font-bold text-ink-900 mb-4">
                                 Detalle Llamada No Conectada
                             </h2>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                <table className="min-w-full divide-y divide-hairline">
+                                    <thead className="bg-surface-sunken">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Fecha</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Agente</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Teléfono</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Tiempo Ring</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Resultado</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Interacción</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Fecha</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Agente</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Teléfono</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Tiempo Ring</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Resultado</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Interacción</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-white divide-y divide-hairline">
                                         {details.cdr5.map((record, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50">
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                            <tr key={idx} className="hover:bg-surface-sunken">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.date ? formatDateTime(record.date) : "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.agent_name || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.telephone || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.ring_time || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.result || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.type_interaction || "-"}
                                                 </td>
                                             </tr>
@@ -287,41 +286,41 @@ export default function CallDetailPage() {
 
                     {/* Diagram / IVR Details */}
                     {details.diagram && details.diagram.length > 0 && (
-                        <div className="card-avalogic p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        <div className="card p-6">
+                            <h2 className="text-xl font-bold text-ink-900 mb-4">
                                 Detalle Llamada IVR
                             </h2>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                <table className="min-w-full divide-y divide-hairline">
+                                    <thead className="bg-surface-sunken">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Fecha</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Paso (RP Name)</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Opción</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Resultado</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Tiempo</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">ANI</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Fecha</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Paso (RP Name)</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Opción</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Resultado</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Tiempo</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">ANI</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-white divide-y divide-hairline">
                                         {details.diagram.map((record, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50">
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                            <tr key={idx} className="hover:bg-surface-sunken">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.date ? formatDateTime(record.date) : "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.rp_name || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.cod_opc_menu || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.result || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.time || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.ani || "-"}
                                                 </td>
                                             </tr>
@@ -334,53 +333,53 @@ export default function CallDetailPage() {
 
                     {/* Tipification Details */}
                     {details.tipification && details.tipification.length > 0 && (
-                        <div className="card-avalogic p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        <div className="card p-6">
+                            <h2 className="text-xl font-bold text-ink-900 mb-4">
                                 Detalle Tipificación
                             </h2>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                <table className="min-w-full divide-y divide-hairline">
+                                    <thead className="bg-surface-sunken">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Fecha</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Agente</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Teléfono</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Destino</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Tiempo</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Actividad</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Comentarios</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Fecha</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Agente</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Teléfono</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Destino</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Tiempo</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Actividad</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-ink-900 uppercase tracking-wider">Comentarios</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-white divide-y divide-hairline">
                                         {details.tipification.map((record, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50">
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                            <tr key={idx} className="hover:bg-surface-sunken">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.date ? formatDateTime(record.date) : "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     <div className="font-medium">{record.agent_name || "-"}</div>
-                                                    <div className="text-xs text-gray-500">ID: {record.agent_id || "-"}</div>
+                                                    <div className="text-xs text-ink-500">ID: {record.agent_id || "-"}</div>
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.telephone || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.destiny || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-700">
                                                     {record.time || "-"}
                                                 </td>
-                                                <td className="px-4 py-2 text-sm text-gray-700">
+                                                <td className="px-4 py-2 text-sm text-ink-700">
                                                     <div className="font-medium">{record.cod_act || "-"}</div>
-                                                    <div className="text-xs text-gray-500">{record.description_cod_act || ""}</div>
+                                                    <div className="text-xs text-ink-500">{record.description_cod_act || ""}</div>
                                                     {record.cod_act_2 && (
                                                         <>
                                                             <div className="font-medium mt-1">{record.cod_act_2}</div>
-                                                            <div className="text-xs text-gray-500">{record.description_cod_act_2 || ""}</div>
+                                                            <div className="text-xs text-ink-500">{record.description_cod_act_2 || ""}</div>
                                                         </>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2 text-sm text-gray-700 max-w-xs">
+                                                <td className="px-4 py-2 text-sm text-ink-700 max-w-xs">
                                                     <div className="truncate" title={record.comments || ""}>
                                                         {record.comments || "-"}
                                                     </div>
@@ -396,7 +395,7 @@ export default function CallDetailPage() {
             )}
 
             {!details && (
-                <div className="card-avalogic p-6">
+                <div className="card p-6">
                     <EmptyState
                         title="No hay información adicional"
                         message="No se encontró información detallada adicional para esta llamada"

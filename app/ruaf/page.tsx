@@ -1,33 +1,19 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import {
-    AlertTriangle,
-    CheckCircle2,
-    Clock,
-    Download,
-    FileSpreadsheet,
-    HelpCircle,
-    Laptop,
-    ListChecks,
-    Loader2,
-    Pause,
-    Play,
-    RefreshCw,
-    Timer,
-    Trash2,
-    Upload,
-    UploadCloud,
-    X,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleStop, Clock, Download, FileSpreadsheet, HelpCircle, Laptop, ListChecks, Loader2, Pause, Play, Radar, RefreshCw, Timer, Trash2, Upload, UploadCloud, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ErrorMessage from "../components/common/ErrorMessage";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import PageHeader from "../components/common/PageHeader";
 import { CorridaHistorial, RuafAccionResponse, RuafEstado, RuafSubidaUrlResponse } from "../types/ruaf";
-import { apiClient } from "../utils/api";
+import { useAbortable } from "../hooks/useAbortable";
+import { apiClient, isAbortError } from "../utils/api";
 
 const REFRESH_MS = 10000;
+// Tras confirmar el lote se consulta el estado más seguido hasta ver que el EC2 empezó a procesar.
+const ARRANQUE_POLL_MS = 2000;
+const ARRANQUE_TIMEOUT_MS = 45000;
 const XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 function formatearReloj(segundos: number): string {
@@ -44,7 +30,7 @@ function ProgressRing({ pct, procesando }: { pct: number; procesando: boolean })
     return (
         <div className="relative w-24 h-24 flex-shrink-0">
             <svg viewBox="0 0 96 96" className="w-24 h-24 -rotate-90">
-                <circle cx="48" cy="48" r={R} fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-100" />
+                <circle cx="48" cy="48" r={R} fill="none" stroke="currentColor" strokeWidth="8" className="text-ink-100" />
                 <motion.circle
                     cx="48"
                     cy="48"
@@ -52,7 +38,7 @@ function ProgressRing({ pct, procesando }: { pct: number; procesando: boolean })
                     fill="none"
                     strokeWidth="8"
                     strokeLinecap="round"
-                    className={procesando ? "text-amber-400" : "text-primary"}
+                    className={procesando ? "text-caution" : "text-primary"}
                     stroke="currentColor"
                     strokeDasharray={CIRC}
                     initial={{ strokeDashoffset: CIRC }}
@@ -61,7 +47,7 @@ function ProgressRing({ pct, procesando }: { pct: number; procesando: boolean })
                 />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-bold text-gray-900 tabular-nums">{pct}%</span>
+                <span className="text-xl font-bold text-ink-900 tabular-nums">{pct}%</span>
             </div>
         </div>
     );
@@ -90,8 +76,8 @@ function StatTile({
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${colorClass}`}>
                 <Icon size={20} />
             </div>
-            <div className="text-2xl font-bold text-gray-900 tabular-nums">{value}</div>
-            <div className="text-sm text-gray-500">{label}</div>
+            <div className="text-2xl font-bold text-ink-900 tabular-nums">{value}</div>
+            <div className="text-sm text-ink-500">{label}</div>
         </motion.div>
     );
 }
@@ -99,7 +85,7 @@ function StatTile({
 function HistorialChart({ corridas }: { corridas: CorridaHistorial[] }) {
     if (corridas.length === 0) {
         return (
-            <div className="text-sm text-gray-400 text-center py-10">
+            <div className="text-sm text-ink-400 text-center py-10">
                 Todavía no hay corridas registradas — aparecerán aquí después de la primera vez
                 que se limpie o se suba un lote.
             </div>
@@ -126,24 +112,24 @@ function HistorialChart({ corridas }: { corridas: CorridaHistorial[] }) {
                             className="flex flex-col items-center gap-1 flex-shrink-0 w-8"
                             title={`${c.fecha} — ${c.exitosas} exitosas, ${c.sin_resultado} sin resultado, ${c.errores} errores de ${c.total}`}
                         >
-                            <span className="text-[10px] text-gray-400 tabular-nums">{c.pct_exito}%</span>
+                            <span className="text-[10px] text-ink-400 tabular-nums">{c.pct_exito}%</span>
                             <div
-                                className="w-full rounded-sm overflow-hidden flex flex-col justify-end bg-gray-100"
+                                className="w-full rounded-sm overflow-hidden flex flex-col justify-end bg-ink-100"
                                 style={{ height: BAR_H }}
                             >
-                                {erroresH > 0 && <div style={{ height: erroresH }} className="bg-red-400" />}
-                                {sinH > 0 && <div style={{ height: sinH }} className="bg-amber-400" />}
-                                {exitosasH > 0 && <div style={{ height: exitosasH }} className="bg-green-500" />}
+                                {erroresH > 0 && <div style={{ height: erroresH }} className="bg-critical" />}
+                                {sinH > 0 && <div style={{ height: sinH }} className="bg-caution" />}
+                                {exitosasH > 0 && <div style={{ height: exitosasH }} className="bg-positive" />}
                             </div>
-                            <span className="text-[10px] text-gray-400 tabular-nums">{c.total}</span>
+                            <span className="text-[10px] text-ink-400 tabular-nums">{c.total}</span>
                         </motion.div>
                     );
                 })}
             </div>
-            <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-green-500" /> Exitosas</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Sin resultado</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-400" /> Errores</span>
+            <div className="flex items-center gap-4 mt-3 text-xs text-ink-500">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-positive" /> Exitosas</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-caution" /> Sin resultado</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-critical" /> Errores</span>
             </div>
         </div>
     );
@@ -166,8 +152,8 @@ function AccionBoton({
 }) {
     const colorClass =
         variant === "danger"
-            ? "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-            : "border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-primary/40";
+            ? "border-critical/25 text-critical hover:bg-critical-soft hover:border-critical/30"
+            : "border-hairline text-ink-700 hover:bg-surface-sunken hover:border-primary/40";
     return (
         <button
             onClick={onClick}
@@ -177,6 +163,93 @@ function AccionBoton({
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Icon size={16} />}
             {label}
         </button>
+    );
+}
+
+type EtapaSubida = "preparando" | "subiendo" | "confirmando" | "iniciando";
+
+const ETAPAS: { id: EtapaSubida; label: string }[] = [
+    { id: "preparando", label: "Preparando la subida" },
+    { id: "subiendo", label: "Subiendo el archivo" },
+    { id: "confirmando", label: "Entregando el lote al servidor RUAF" },
+    { id: "iniciando", label: "Esperando que empiece el procesamiento" },
+];
+
+function ProgresoSubida({
+    archivo,
+    etapa,
+    progreso,
+    onCancel,
+}: {
+    archivo: File;
+    etapa: EtapaSubida;
+    progreso: number;
+    onCancel?: () => void;
+}) {
+    const actual = ETAPAS.findIndex((e) => e.id === etapa);
+    const determinado = etapa === "subiendo";
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-primary/25 bg-primary/5 p-5"
+            role="status"
+            aria-live="polite"
+        >
+            <div className="mb-4 flex items-center gap-3">
+                <motion.div
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                >
+                    <UploadCloud size={20} />
+                </motion.div>
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink-900">{archivo.name}</p>
+                    <p className="text-xs text-ink-500">{ETAPAS[actual].label}…</p>
+                </div>
+                {onCancel && (
+                    <button type="button" onClick={onCancel} className="btn btn-ghost py-1.5 text-sm text-critical">
+                        <CircleStop size={15} />
+                        Cancelar
+                    </button>
+                )}
+            </div>
+
+            <div className="relative mb-4 h-2 overflow-hidden rounded-full bg-ink-100">
+                {determinado ? (
+                    <motion.div
+                        className="h-full rounded-full bg-primary"
+                        animate={{ width: `${progreso}%` }}
+                        transition={{ ease: "easeOut", duration: 0.3 }}
+                    />
+                ) : (
+                    <motion.div
+                        className="absolute inset-y-0 w-1/3 rounded-full bg-primary"
+                        animate={{ left: ["-33%", "100%"] }}
+                        transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                )}
+            </div>
+
+            <ol className="space-y-2">
+                {ETAPAS.map((e, i) => (
+                    <li key={e.id} className="flex items-center gap-2 text-sm">
+                        {i < actual ? (
+                            <CheckCircle2 size={16} className="text-positive" />
+                        ) : i === actual ? (
+                            <Loader2 size={16} className="animate-spin text-primary" />
+                        ) : (
+                            <span className="mx-[3px] h-2.5 w-2.5 rounded-full border-2 border-ink-200" />
+                        )}
+                        <span className={i === actual ? "font-medium text-ink-900" : i < actual ? "text-ink-500" : "text-ink-400"}>
+                            {e.label}
+                            {e.id === "subiendo" && i === actual && <span className="tabular"> · {progreso}%</span>}
+                        </span>
+                    </li>
+                ))}
+            </ol>
+        </motion.div>
     );
 }
 
@@ -206,15 +279,15 @@ function AyudaModal({ onClose }: { onClose: () => void }) {
                 className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 sm:p-7"
             >
                 <div className="flex items-start justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">Cómo usar esta página</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700 -mt-1 -mr-1 p-1">
+                    <h2 className="text-xl font-bold text-ink-900">Cómo usar esta página</h2>
+                    <button onClick={onClose} className="text-ink-400 hover:text-ink-700 -mt-1 -mr-1 p-1">
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="space-y-4 text-sm text-gray-700">
+                <div className="space-y-4 text-sm text-ink-700">
                     <div>
-                        <p className="font-semibold text-gray-900 mb-1">¿Qué hace?</p>
+                        <p className="font-semibold text-ink-900 mb-1">¿Qué hace?</p>
                         <p>
                             Consulta automáticamente en RUAF, cédula por cédula, si la persona está afiliada
                             y cotizando a salud, y con qué EPS. El proceso corre solo, en un servidor — esta
@@ -222,17 +295,17 @@ function AyudaModal({ onClose }: { onClose: () => void }) {
                         </p>
                     </div>
                     <div>
-                        <p className="font-semibold text-gray-900 mb-1">Subir un lote</p>
+                        <p className="font-semibold text-ink-900 mb-1">Subir un lote</p>
                         <p>
-                            Un archivo <code className="bg-gray-100 px-1 rounded">.xlsx</code> con columnas{" "}
-                            <code className="bg-gray-100 px-1 rounded">Cedula</code> y{" "}
-                            <code className="bg-gray-100 px-1 rounded">FechaExpedicion</code>. Al subirlo,
+                            Un archivo <code className="bg-ink-100 px-1 rounded">.xlsx</code> con columnas{" "}
+                            <code className="bg-ink-100 px-1 rounded">Cedula</code> y{" "}
+                            <code className="bg-ink-100 px-1 rounded">FechaExpedicion</code>. Al subirlo,
                             reemplaza el lote actual (el anterior queda archivado, no se pierde). Solo se
                             puede subir uno nuevo cuando no hay nada procesando.
                         </p>
                     </div>
                     <div>
-                        <p className="font-semibold text-gray-900 mb-1">Descargar el resultado</p>
+                        <p className="font-semibold text-ink-900 mb-1">Descargar el resultado</p>
                         <p>
                             El botón "Descargar resultado" te da un Excel simple: por cada cédula, si está
                             cotizando o no, con qué EPS, o — si no se pudo verificar — el motivo puntual.
@@ -240,11 +313,11 @@ function AyudaModal({ onClose }: { onClose: () => void }) {
                             se alcanzó a consultar).
                         </p>
                     </div>
-                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-                        <p className="font-semibold text-amber-900 flex items-center gap-2 mb-1">
+                    <div className="rounded-xl bg-caution-soft border border-caution/25 p-4">
+                        <p className="font-semibold text-caution flex items-center gap-2 mb-1">
                             <Laptop size={16} /> Mientras esté "Procesando"
                         </p>
-                        <p className="text-amber-900">
+                        <p className="text-caution">
                             El servidor sale a internet a través de un túnel que corre desde una laptop.{" "}
                             <strong>No se puede cerrar la tapa del laptop mientras haya un lote corriendo</strong>{" "}
                             — al cerrarla, el túnel se corta y el proceso empieza a fallar. Dejala abierta y
@@ -275,6 +348,11 @@ export default function RuafPage() {
     const [descargado, setDescargado] = useState(false);
 
     const [segundosRestantes, setSegundosRestantes] = useState(0);
+
+    const [etapa, setEtapa] = useState<EtapaSubida | null>(null);
+    const [progreso, setProgreso] = useState(0);
+    const subida = useAbortable();
+    const estadoCardRef = useRef<HTMLDivElement | null>(null);
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -377,38 +455,60 @@ export default function RuafPage() {
     // Lambda) — así no hay límite de tamaño real, sirve para lotes de miles de cédulas
     const subirLote = async () => {
         if (!archivo) return;
-        setAccionEnCurso("subir_lote");
-        let cerroLoteAnterior = false;
+        const signal = subida.begin();
+        setProgreso(0);
+        setEtapa("preparando");
         try {
             // El archivo va directo del navegador a S3 con una URL prefirmada y
             // recién ahí se le avisa al EC2 que lo baje: así el lote no queda
             // limitado por el tamaño máximo del cuerpo de la request.
             const { upload_url, s3_key } = await apiClient.post<RuafSubidaUrlResponse>(
                 "/api/ruaf/subir_lote_url",
-                { nombre_archivo: archivo.name }
+                { nombre_archivo: archivo.name },
+                signal
             );
-            await apiClient.putToSignedUrl(upload_url, archivo, XLSX_CONTENT_TYPE);
-            const resp = await apiClient.post<RuafAccionResponse>(
-                "/api/ruaf/subir_lote_confirmar",
-                { s3_key }
-            );
-            mostrarFeedback(resp.ok, resp.ok ? resp.mensaje : resp.error || "Ocurrió un error.");
-            if (resp.ok) {
-                cerroLoteAnterior = true;
-                setArchivo(null);
-                if (fileInputRef.current) fileInputRef.current.value = "";
-            }
-        } catch (err: any) {
-            mostrarFeedback(false, err.message || "No se pudo subir el lote.");
-        } finally {
-            setAccionEnCurso(null);
-            if (cerroLoteAnterior) {
-                cargarTodo(true);
-            } else {
+            setEtapa("subiendo");
+            await apiClient.putToSignedUrl(upload_url, archivo, XLSX_CONTENT_TYPE, { onProgress: setProgreso, signal });
+            // Desde aquí ya no se cancela: el EC2 podría haber tomado el lote.
+            setEtapa("confirmando");
+            const resp = await apiClient.post<RuafAccionResponse>("/api/ruaf/subir_lote_confirmar", { s3_key });
+            if (!resp.ok) {
+                setEtapa(null);
+                mostrarFeedback(false, resp.error || "Ocurrió un error.");
                 cargarEstado(true);
+                return;
             }
+            mostrarFeedback(true, resp.mensaje);
+            setArchivo(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            setEtapa("iniciando");
+            estadoCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            cargarTodo(true);
+        } catch (err: any) {
+            setEtapa(null);
+            if (isAbortError(err)) {
+                mostrarFeedback(false, "Subida cancelada. El lote no se envió.");
+                return;
+            }
+            mostrarFeedback(false, err.message || "No se pudo subir el lote.");
+            cargarEstado(true);
         }
     };
+
+    const cancelarSubida = () => subida.abort();
+
+    // Mientras el EC2 arranca el lote, se consulta más seguido para mostrar el avance apenas empiece.
+    useEffect(() => {
+        if (etapa !== "iniciando") return;
+        const poll = setInterval(() => cargarEstado(true), ARRANQUE_POLL_MS);
+        const limite = setTimeout(() => setEtapa(null), ARRANQUE_TIMEOUT_MS);
+        return () => {
+            clearInterval(poll);
+            clearTimeout(limite);
+        };
+    }, [etapa, cargarEstado]);
+
+    if (etapa === "iniciando" && estado?.procesando) setEtapa(null);
 
     const descargarResumen = async () => {
         setAccionEnCurso("descargar");
@@ -435,18 +535,20 @@ export default function RuafPage() {
     const pct = terminado && descargado ? 0 : pctCalculado;
     // si el EC2 no responde, disponible y procesando llegan los dos en false
     const sinConexion = !!estado && !estado.disponible && !estado.procesando;
-    const puedeSubir = !!estado && estado.disponible && !estado.procesando;
+    const puedeSubir = !!estado && estado.disponible && !estado.procesando && etapa === null;
+    const arrancando = etapa === "iniciando";
 
     return (
         <div className="max-w-4xl mx-auto">
             <div className="flex items-start justify-between gap-4">
                 <PageHeader
+                            icon={Radar}
                     title="Estado de RUAF"
                     description="Disponibilidad, avance en vivo e historial del proceso automático de consultas a RUAF."
                 />
                 <button
                     onClick={() => setMostrarAyuda(true)}
-                    className="btn-secondary text-sm py-2 px-4 flex-shrink-0 mt-1"
+                    className="btn btn-secondary text-sm py-2 px-4 flex-shrink-0 mt-1"
                 >
                     <HelpCircle size={16} />
                     Cómo usarlo
@@ -458,7 +560,7 @@ export default function RuafPage() {
             {feedback && (
                 <div
                     className={`mt-4 flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm ${
-                        feedback.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                        feedback.ok ? "bg-positive-soft text-positive" : "bg-critical-soft text-critical"
                     }`}
                 >
                     {feedback.ok ? <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" /> : <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />}
@@ -471,41 +573,53 @@ export default function RuafPage() {
 
             {!loading && !error && estado && (
                 <div className="space-y-6">
-                    <div className="card p-5 sm:p-6">
+                    <div
+                        ref={estadoCardRef}
+                        className={`card scroll-mt-6 p-5 transition-shadow sm:p-6 ${arrancando ? "ring-2 ring-primary/30" : ""}`}
+                    >
                         <div className="flex flex-wrap items-center gap-5">
                             <ProgressRing pct={pct} procesando={estado.procesando} />
 
                             <div className="flex-1 min-w-[200px]">
                                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                                    {estado.procesando ? (
-                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-700 inline-flex items-center gap-2">
+                                    {arrancando ? (
+                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-primary/10 text-primary inline-flex items-center gap-2">
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Iniciando lote
+                                        </span>
+                                    ) : estado.procesando ? (
+                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-caution-soft text-caution inline-flex items-center gap-2">
                                             <Loader2 size={16} className="animate-spin" />
                                             Procesando
                                         </span>
                                     ) : estado.disponible ? (
-                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700 inline-flex items-center gap-2">
+                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-positive-soft text-positive inline-flex items-center gap-2">
                                             <CheckCircle2 size={16} />
                                             Disponible
                                         </span>
                                     ) : (
-                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-700 inline-flex items-center gap-2">
+                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-critical-soft text-critical inline-flex items-center gap-2">
                                             <AlertTriangle size={16} />
                                             Sin conexión
                                         </span>
                                     )}
                                 </div>
-                                {estado.procesando ? (
-                                    <p className="text-sm text-gray-500">
+                                {arrancando ? (
+                                    <p className="text-sm text-ink-500">
+                                        Lote recibido. Esperando que el servidor de RUAF empiece a procesarlo…
+                                    </p>
+                                ) : estado.procesando ? (
+                                    <p className="text-sm text-ink-500">
                                         {estado.pendientes} cédula{estado.pendientes !== 1 ? "s" : ""} pendiente
                                         {estado.pendientes !== 1 ? "s" : ""} · tiempo estimado{" "}
-                                        <span className="font-semibold text-gray-700 tabular-nums">
+                                        <span className="font-semibold text-ink-700 tabular-nums">
                                             {formatearReloj(segundosRestantes)}
                                         </span>
                                     </p>
                                 ) : estado.disponible ? (
-                                    <p className="text-sm text-gray-500">Listo para recibir un nuevo lote.</p>
+                                    <p className="text-sm text-ink-500">Listo para recibir un nuevo lote.</p>
                                 ) : (
-                                    <p className="text-sm text-red-600">
+                                    <p className="text-sm text-critical">
                                         No se pudo conectar con el servidor de RUAF (EC2 apagado o túnel caído).
                                         Reintenta en unos minutos.
                                     </p>
@@ -516,7 +630,7 @@ export default function RuafPage() {
                                 <button
                                     onClick={descargarResumen}
                                     disabled={accionEnCurso === "descargar" || estado.procesadas === 0}
-                                    className="btn-secondary text-sm py-2 px-4 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="btn btn-secondary text-sm py-2 px-4 disabled:opacity-40 disabled:cursor-not-allowed"
                                     title={estado.procesadas === 0 ? "Todavía no hay resultados para descargar" : "Descargar resultado (cotizando / EPS / error)"}
                                 >
                                     {accionEnCurso === "descargar" ? (
@@ -529,7 +643,7 @@ export default function RuafPage() {
                                 <button
                                     onClick={() => cargarTodo(true)}
                                     disabled={refreshing}
-                                    className="btn-secondary text-sm py-2 px-4"
+                                    className="btn btn-secondary text-sm py-2 px-4"
                                 >
                                     <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
                                 </button>
@@ -538,10 +652,10 @@ export default function RuafPage() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                        <StatTile icon={ListChecks} label="Total" value={estado.total} colorClass="bg-gray-100 text-gray-600" delay={0} />
-                        <StatTile icon={CheckCircle2} label="Exitosas" value={estado.exitosas} colorClass="bg-green-100 text-green-600" delay={0.05} />
+                        <StatTile icon={ListChecks} label="Total" value={estado.total} colorClass="bg-ink-100 text-ink-600" delay={0} />
+                        <StatTile icon={CheckCircle2} label="Exitosas" value={estado.exitosas} colorClass="bg-positive-soft text-positive" delay={0.05} />
                         <StatTile icon={Clock} label="Procesadas" value={estado.procesadas} colorClass="bg-primary/10 text-primary" delay={0.1} />
-                        <StatTile icon={Timer} label="Pendientes" value={estado.pendientes} colorClass="bg-amber-100 text-amber-600" delay={0.15} />
+                        <StatTile icon={Timer} label="Pendientes" value={estado.pendientes} colorClass="bg-caution-soft text-caution" delay={0.15} />
                     </div>
 
                     <motion.div
@@ -550,8 +664,8 @@ export default function RuafPage() {
                         transition={{ duration: 0.4, delay: 0.2 }}
                         className="card p-5 sm:p-6"
                     >
-                        <h2 className="text-lg font-bold text-gray-900 mb-1">Historial de corridas</h2>
-                        <p className="text-sm text-gray-500 mb-4">
+                        <h2 className="text-lg font-bold text-ink-900 mb-1">Historial de corridas</h2>
+                        <p className="text-sm text-ink-500 mb-4">
                             Cada barra es un lote que se cerró (limpiar o subir un lote nuevo).
                         </p>
                         <HistorialChart corridas={historial} />
@@ -563,8 +677,8 @@ export default function RuafPage() {
                         transition={{ duration: 0.4, delay: 0.25 }}
                         className="card p-5 sm:p-6"
                     >
-                        <h2 className="text-lg font-bold text-gray-900 mb-1">Acciones</h2>
-                        <p className="text-sm text-gray-500 mb-4">
+                        <h2 className="text-lg font-bold text-ink-900 mb-1">Acciones</h2>
+                        <p className="text-sm text-ink-500 mb-4">
                             Actúa directo sobre el proceso del servidor — sin necesitar terminal.
                         </p>
 
@@ -590,11 +704,11 @@ export default function RuafPage() {
                             />
                         </div>
 
-                        <div className="border-t border-gray-100 pt-5">
-                            <label className="block text-sm font-semibold text-gray-900 mb-2">Subir un lote nuevo</label>
+                        <div className="border-t border-hairline pt-5">
+                            <label className="block text-sm font-semibold text-ink-900 mb-2">Subir un lote nuevo</label>
 
-                            {!puedeSubir && (
-                                <div className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800">
+                            {!puedeSubir && etapa === null && (
+                                <div className="mb-3 flex items-start gap-2 rounded-lg bg-caution-soft border border-caution/25 px-3 py-2.5 text-sm text-caution">
                                     <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
                                     <span>
                                         {sinConexion
@@ -604,6 +718,14 @@ export default function RuafPage() {
                                 </div>
                             )}
 
+                            {etapa && etapa !== "iniciando" && archivo ? (
+                                <ProgresoSubida
+                                    archivo={archivo}
+                                    etapa={etapa}
+                                    progreso={progreso}
+                                    onCancel={etapa === "preparando" || etapa === "subiendo" ? cancelarSubida : undefined}
+                                />
+                            ) : (
                             <div
                                 onDragOver={(e) => {
                                     if (!puedeSubir) return;
@@ -620,10 +742,10 @@ export default function RuafPage() {
                                 onClick={() => puedeSubir && fileInputRef.current?.click()}
                                 className={`relative rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
                                     !puedeSubir
-                                        ? "border-gray-100 bg-gray-50 cursor-not-allowed opacity-60"
+                                        ? "border-hairline bg-surface-sunken cursor-not-allowed opacity-60"
                                         : arrastrando
                                         ? "border-primary bg-primary/5 cursor-pointer"
-                                        : "border-gray-200 hover:border-primary/40 hover:bg-gray-50 cursor-pointer"
+                                        : "border-hairline hover:border-primary/40 hover:bg-surface-sunken cursor-pointer"
                                 }`}
                             >
                                 <input
@@ -639,8 +761,8 @@ export default function RuafPage() {
                                     <div className="flex items-center justify-center gap-3">
                                         <FileSpreadsheet size={28} className="text-primary flex-shrink-0" />
                                         <div className="text-left">
-                                            <p className="text-sm font-medium text-gray-900">{archivo.name}</p>
-                                            <p className="text-xs text-gray-500">{(archivo.size / 1024).toFixed(0)} KB</p>
+                                            <p className="text-sm font-medium text-ink-900">{archivo.name}</p>
+                                            <p className="text-xs text-ink-500">{(archivo.size / 1024).toFixed(0)} KB</p>
                                         </div>
                                         <button
                                             onClick={(e) => {
@@ -648,43 +770,41 @@ export default function RuafPage() {
                                                 setArchivo(null);
                                                 if (fileInputRef.current) fileInputRef.current.value = "";
                                             }}
-                                            className="text-gray-400 hover:text-red-500 p-1"
+                                            className="text-ink-400 hover:text-critical p-1"
                                         >
                                             <X size={16} />
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center gap-2 text-gray-500">
-                                        <UploadCloud size={28} className={puedeSubir ? "text-primary/60" : "text-gray-300"} />
+                                    <div className="flex flex-col items-center gap-2 text-ink-500">
+                                        <UploadCloud size={28} className={puedeSubir ? "text-primary/60" : "text-ink-300"} />
                                         <p className="text-sm">
                                             <span className="font-medium text-primary">Elegí un archivo</span> o arrastralo aquí
                                         </p>
-                                        <p className="text-xs text-gray-400">
-                                            .xlsx con columnas Cedula y FechaExpedicion · límite 50MB
+                                        <p className="text-xs text-ink-400">
+                                            .xlsx con columnas Cedula y FechaExpedicion · límite ~150KB
                                         </p>
                                     </div>
                                 )}
                             </div>
 
-                            {archivo && (
+                            )}
+
+                            {archivo && etapa === null && (
                                 <button
                                     onClick={subirLote}
-                                    disabled={accionEnCurso === "subir_lote" || !puedeSubir}
+                                    disabled={!puedeSubir}
                                     title={!puedeSubir ? "Ya no se puede subir — el estado cambió mientras elegías el archivo" : undefined}
-                                    className="btn-primary text-sm py-2 px-5 mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="btn btn-primary text-sm py-2 px-5 mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {accionEnCurso === "subir_lote" ? (
-                                        <Loader2 size={14} className="animate-spin" />
-                                    ) : (
-                                        <Upload size={14} />
-                                    )}
+                                    <Upload size={14} />
                                     Subir y empezar
                                 </button>
                             )}
                         </div>
                     </motion.div>
 
-                    <p className="text-xs text-gray-400 text-center">
+                    <p className="text-xs text-ink-400 text-center">
                         Actualizado: {estado.actualizado} · se refresca solo cada {REFRESH_MS / 1000} segundos
                     </p>
                 </div>

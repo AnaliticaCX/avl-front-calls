@@ -21,6 +21,7 @@ export default function Button({
     };
 
     const classes = [
+        'btn',
         variantClasses[variant],
         fullWidth ? 'w-full' : '',
         disabled ? 'opacity-60 pointer-events-none' : 'cursor-pointer'

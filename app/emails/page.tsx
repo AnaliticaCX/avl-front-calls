@@ -1,19 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import Button from "../components/Button";
-import Breadcrumbs from "../components/common/Breadcrumbs";
-import EmptyState from "../components/common/EmptyState";
-import ErrorMessage from "../components/common/ErrorMessage";
+import { AnimatePresence, motion } from "framer-motion";
+import { Download, Mail, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { DateTimeCell, ExportButton, RowAction, Stack, Tag } from "../components/common/cells";
 import Filters from "../components/common/Filters";
-import LoadingSpinner from "../components/common/LoadingSpinner";
+import InfoCallout from "../components/common/InfoCallout";
+import InlineAlert from "../components/common/InlineAlert";
 import PageHeader from "../components/common/PageHeader";
-import Pagination from "../components/common/Pagination";
-import Table from "../components/common/Table";
+import SearchResults from "../components/common/SearchResults";
 import { useFilters } from "../hooks/useFilters";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import { usePagination } from "../hooks/usePagination";
-import { useSearch } from "../hooks/useSearch";
+import { usePagedSearch } from "../hooks/usePagedSearch";
 import { Cdr9Record } from "../types/cdr";
 import { downloadEmailPDF, downloadPDF, downloadXLSX, PdfColumn } from "../utils/download";
 import { formatDate, formatDateTime, getTodayString } from "../utils/formatters";
@@ -26,8 +23,6 @@ interface EmailFilters {
     channel: string;
     start_date: string;
     end_date: string;
-    page: number;
-    per_page: number;
     order_by: string;
 }
 
@@ -41,10 +36,9 @@ const EXPORT_COLUMNS: PdfColumn[] = [
 ];
 
 export default function EmailReportPage() {
-    const [showNote, setShowNote] = useLocalStorage('emails-hide-note', false);
     const [dateRangeError, setDateRangeError] = useState("");
     const [selectedEmail, setSelectedEmail] = useState<Cdr9Record | null>(null);
-    const { results, loading, error, search, setError } = useSearch('/api/mails/detalle_correos/search');
+    const { results, loading, error, setError, cancel, run, reset, paging } = usePagedSearch('/api/mails/detalle_correos/search');
     const { filters, updateFilter, clearFilters } = useFilters<EmailFilters>({
         sent_from: '',
         sent_to: '',
@@ -52,14 +46,8 @@ export default function EmailReportPage() {
         channel: '',
         start_date: '',
         end_date: '',
-        page: 1,
-        per_page: 50,
         order_by: 'desc'
     });
-    const { currentPage, itemsPerPage, totalPages, handlePageChange, handlePerPageChange } = usePagination(
-        results?.total,
-        filters.per_page
-    );
 
     const filterFields = [
         { name: 'sent_from', label: 'Remitente (De)', placeholder: 'correo@dominio.com' },
@@ -71,15 +59,12 @@ export default function EmailReportPage() {
     ];
 
     const validateDateRange = (inicio?: string, fin?: string) => {
-        const startDate = inicio !== undefined ? inicio : filters.start_date;
-        const endDate = fin !== undefined ? fin : filters.end_date;
-
-        const result = validateDateRangeUtil(startDate, endDate);
+        const result = validateDateRangeUtil(inicio ?? filters.start_date, fin ?? filters.end_date);
         setDateRangeError(result.error || "");
         return result.isValid;
     };
 
-    const handleSearch = async (e: React.FormEvent) => {
+    const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -95,26 +80,13 @@ export default function EmailReportPage() {
             return;
         }
 
-        search({
-            ...filters,
-            page: currentPage,
-            per_page: itemsPerPage
-        });
+        run({ ...filters });
     };
 
     const handleClear = () => {
         clearFilters();
-        setError('');
+        reset();
         setDateRangeError('');
-    };
-
-    const handlePageChangeWrapper = async (page: number) => {
-        handlePageChange(page);
-        search({
-            ...filters,
-            page,
-            per_page: itemsPerPage
-        });
     };
 
     const handleExportXLSX = () => {
@@ -133,102 +105,53 @@ export default function EmailReportPage() {
         });
     };
 
-    const truncate = (value: string | null, max = 60) => {
-        if (!value) return '-';
-        return value.length > max ? `${value.slice(0, max)}…` : value;
-    };
-
     const columns = [
-        {
-            key: 'date',
-            label: 'Fecha',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{value ? formatDate(value) : '-'}</div>
-            )
-        },
-        {
-            key: 'sent_from',
-            label: 'Remitente',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{value || '-'}</div>
-            )
-        },
-        {
-            key: 'sent_to',
-            label: 'Destinatario',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{value || '-'}</div>
-            )
-        },
         {
             key: 'subject',
             label: 'Asunto',
-            render: (value: any) => (
-                <div className="text-sm text-gray-900">{truncate(value)}</div>
+            maxWidth: '22rem',
+            render: (value: any, row: any) => (
+                <Stack strong primary={value || '(Sin asunto)'} secondary={row.sent_from} />
             )
         },
+        { key: 'date', label: 'Fecha', render: (value: any) => <DateTimeCell value={value} /> },
+        { key: 'sent_to', label: 'Destinatario', maxWidth: '16rem' },
+        { key: 'channel', label: 'Canal', render: (value: any) => <Tag value={value} /> },
+        { key: 'sent_from', label: 'Remitente', secondary: true },
         {
-            key: 'channel',
-            label: 'Canal',
-            render: (value: any) => (
-                <div className="text-xs text-gray-500">{value || '-'}</div>
-            )
+            key: 'ingested_at',
+            label: 'Ingestado',
+            secondary: true,
+            render: (value: any) => (value ? formatDateTime(value) : '—')
         },
         {
             key: 'actions',
             label: 'Acciones',
             render: (_: any, row: any) => (
-                <Button
-                    text="Ver Detalle"
-                    onClick={() => setSelectedEmail(row as Cdr9Record)}
-                    variant="secondary"
-                />
+                <RowAction label="Abrir correo" onClick={() => setSelectedEmail(row as Cdr9Record)} />
             )
         }
     ];
 
     return (
-        <div className="max-w-7xl mx-auto">
-            <Breadcrumbs items={[
-                { label: 'Correos', href: '/emails' }
-            ]} />
-
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
             <PageHeader
+                icon={Mail}
                 title="Detalle de Correos"
                 description="Consulta los correos del canal por remitente, destinatario, asunto, canal o rango de fechas."
             />
 
-            {!showNote && (
-                <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg relative">
-                    <button
-                        onClick={() => setShowNote(true)}
-                        className="absolute top-3 right-3 text-blue-600 hover:text-blue-800 transition-colors"
-                        title="Cerrar nota"
-                        type="button"
-                    >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                    </button>
-                    <div className="flex items-start">
-                        <svg className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 1 1 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                        <div className="text-sm text-blue-900 pr-6">
-                            <p className="font-semibold mb-2">¿Cómo buscar?</p>
-                            <ul className="space-y-1 list-disc list-inside">
-                                <li>Puedes combinar <strong>todos los criterios</strong> (remitente, destinatario, asunto, canal, fechas)</li>
-                                <li>Todos los campos son <strong>opcionales</strong>, pero al menos uno debe tener valor</li>
-                                <li><strong>Remitente / Destinatario:</strong> admiten coincidencias parciales del correo</li>
-                                <li><strong>Fecha inicio:</strong> busca desde esa fecha hasta hoy</li>
-                                <li><strong>Fecha fin:</strong> busca todo lo registrado hasta esa fecha</li>
-                                <li>Las fechas no pueden ser <strong>futuras</strong></li>
-                                <li>Puedes descargar los resultados en <strong>Excel</strong> o <strong>PDF</strong></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <InfoCallout id="emails" title="¿Cómo buscar?">
+                <ul className="space-y-1 list-disc list-inside">
+                    <li>Puedes combinar <strong>todos los criterios</strong> (remitente, destinatario, asunto, canal, fechas)</li>
+                    <li>Todos los campos son <strong>opcionales</strong>, pero al menos uno debe tener valor</li>
+                    <li><strong>Remitente / Destinatario:</strong> admiten coincidencias parciales del correo</li>
+                    <li><strong>Fecha inicio:</strong> busca desde esa fecha hasta hoy</li>
+                    <li><strong>Fecha fin:</strong> busca todo lo registrado hasta esa fecha</li>
+                    <li>Las fechas no pueden ser <strong>futuras</strong></li>
+                    <li>Puedes descargar los resultados en <strong>Excel</strong> o <strong>PDF</strong></li>
+                </ul>
+            </InfoCallout>
 
             <Filters
                 fields={filterFields}
@@ -245,137 +168,132 @@ export default function EmailReportPage() {
                 onSubmit={handleSearch}
                 onClear={handleClear}
                 loading={loading}
+                onCancel={cancel}
             />
 
-            {dateRangeError && (
-                <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
-                    <div className="flex items-start">
-                        <svg className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <p className="text-sm text-red-800 font-medium">
-                            {dateRangeError}
-                        </p>
-                    </div>
-                </div>
-            )}
+            {dateRangeError && <InlineAlert>{dateRangeError}</InlineAlert>}
 
-            {loading && <LoadingSpinner text="Cargando resultados..." />}
-            {error && <ErrorMessage message={error} />}
+            <SearchResults
+                columns={columns}
+                results={results}
+                loading={loading}
+                onCancel={cancel}
+                error={error}
+                paging={paging}
+                itemName="correo"
+                actions={
+                    <>
+                        <ExportButton onClick={handleExportXLSX} />
+                        <ExportButton format="pdf" onClick={handleExportPDF} />
+                    </>
+                }
+                emptyMessage="No hay correos que coincidan con los criterios de búsqueda."
+            />
 
-            {!loading && results && results.data && results.data.length > 0 && (
-                <div>
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-                        <div className="text-sm text-gray-900 font-medium">
-                            Registros recuperados: <span className="font-bold">{results.total}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button text="Descargar Excel" onClick={handleExportXLSX} variant="secondary" />
-                            <Button text="Descargar PDF" onClick={handleExportPDF} variant="primary" />
-                        </div>
-                    </div>
+            <EmailModal email={selectedEmail} onClose={() => setSelectedEmail(null)} />
+        </div>
+    );
+}
 
-                    <Table columns={columns} data={results.data} />
+function EmailModal({ email, onClose }: { email: Cdr9Record | null; onClose: () => void }) {
+    useEffect(() => {
+        if (!email) return;
+        const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [email, onClose]);
 
-                    <div className="mt-6 flex flex-col items-center gap-2">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            totalItems={results.total}
-                            perPage={itemsPerPage}
-                            onPageChange={handlePageChangeWrapper}
-                            onPerPageChange={handlePerPageChange}
-                        />
-                        <div className="text-sm text-gray-700 mt-2">
-                            Página {currentPage} de {totalPages}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                            Mostrando {results.data.length} de {results.total} correos
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {!loading && results && results.data && results.data.length === 0 && (
-                <EmptyState
-                    title="No se encontraron resultados"
-                    message="No hay correos que coincidan con los criterios de búsqueda."
-                />
-            )}
-
-            {selectedEmail && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                    onClick={() => setSelectedEmail(null)}
+    return (
+        <AnimatePresence>
+            {email && (
+                <motion.div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4 backdrop-blur-sm"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
                 >
-                    <div
-                        className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+                    <motion.div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={email.subject || "Correo"}
+                        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-lifted)]"
+                        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-start justify-between gap-4 p-6 border-b border-gray-200">
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900">
-                                    {selectedEmail.subject || '(Sin asunto)'}
-                                </h3>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {selectedEmail.date ? formatDate(selectedEmail.date) : '-'}
-                                    {selectedEmail.channel ? ` · ${selectedEmail.channel}` : ''}
-                                </p>
+                        <div className="flex items-start justify-between gap-4 border-b border-hairline px-6 py-5">
+                            <div className="flex min-w-0 items-start gap-3">
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
+                                    <Mail size={18} aria-hidden />
+                                </span>
+                                <div className="min-w-0">
+                                    <h3 className="truncate text-lg font-semibold text-ink-900">
+                                        {email.subject || '(Sin asunto)'}
+                                    </h3>
+                                    <p className="mt-0.5 text-sm text-ink-400">
+                                        {email.date ? formatDate(email.date) : '—'}
+                                        {email.channel ? ` · ${email.channel}` : ''}
+                                    </p>
+                                </div>
                             </div>
                             <button
-                                onClick={() => setSelectedEmail(null)}
-                                className="text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0"
-                                title="Cerrar"
+                                onClick={onClose}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-50 hover:text-ink-700"
+                                aria-label="Cerrar"
                                 type="button"
                             >
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
+                                <X size={18} aria-hidden />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto">
-                            <div className="grid sm:grid-cols-2 gap-4 mb-4 text-sm">
-                                <div>
-                                    <span className="block text-xs font-semibold text-gray-500 uppercase">De</span>
-                                    <span className="text-gray-900">{selectedEmail.sent_from || '-'}</span>
-                                </div>
-                                <div>
-                                    <span className="block text-xs font-semibold text-gray-500 uppercase">Para</span>
-                                    <span className="text-gray-900">{selectedEmail.sent_to || '-'}</span>
-                                </div>
-                                <div>
-                                    <span className="block text-xs font-semibold text-gray-500 uppercase">Ingestado</span>
-                                    <span className="text-gray-900">
-                                        {selectedEmail.ingested_at ? formatDateTime(selectedEmail.ingested_at) : '-'}
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span className="block text-xs font-semibold text-gray-500 uppercase mb-2">Cuerpo</span>
-                                {selectedEmail.body ? (
-                                    <iframe
-                                        srcDoc={`<meta charset="utf-8">${selectedEmail.body}`}
-                                        sandbox="allow-same-origin"
-                                        className="w-full rounded-lg border border-gray-200 bg-white"
-                                        style={{ minHeight: '320px', height: '420px' }}
-                                        title="Cuerpo del correo"
-                                    />
-                                ) : (
-                                    <p className="text-sm text-gray-400 italic">Sin contenido</p>
-                                )}
-                            </div>
+
+                        <div className="overflow-y-auto px-6 py-5">
+                            <dl className="mb-5 grid gap-4 rounded-xl bg-surface-sunken p-4 text-sm sm:grid-cols-3">
+                                {[
+                                    ['De', email.sent_from],
+                                    ['Para', email.sent_to],
+                                    ['Ingestado', email.ingested_at ? formatDateTime(email.ingested_at) : null],
+                                ].map(([label, value]) => (
+                                    <div key={label as string} className="min-w-0">
+                                        <dt className="mb-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-400">{label}</dt>
+                                        <dd className="break-words text-ink-700">{value || '—'}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+
+                            {email.body ? (
+                                <iframe
+                                    srcDoc={`<meta charset="utf-8">${email.body}`}
+                                    sandbox="allow-same-origin"
+                                    className="w-full rounded-xl border border-hairline bg-white"
+                                    style={{ minHeight: '320px', height: '420px' }}
+                                    title="Cuerpo del correo"
+                                />
+                            ) : (
+                                <p className="rounded-xl border border-dashed border-hairline p-8 text-center text-sm text-ink-400">
+                                    Este correo no tiene contenido
+                                </p>
+                            )}
                         </div>
-                        <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
-                            <Button text="Cerrar" onClick={() => setSelectedEmail(null)} variant="secondary" />
-                            <Button
-                                text="Descargar PDF"
-                                onClick={() => downloadEmailPDF(selectedEmail, `correo_${selectedEmail.date ?? Date.now()}`)}
-                                variant="primary"
-                            />
+
+                        <div className="flex justify-end gap-2 border-t border-hairline bg-surface-sunken/60 px-6 py-4">
+                            <button type="button" onClick={onClose} className="btn btn-ghost">
+                                Cerrar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => downloadEmailPDF(email, `correo_${email.date ?? Date.now()}`)}
+                                className="btn btn-primary"
+                            >
+                                <Download size={15} aria-hidden />
+                                Descargar PDF
+                            </button>
                         </div>
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
             )}
-        </div>
+        </AnimatePresence>
     );
 }

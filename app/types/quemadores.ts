@@ -6,6 +6,10 @@ export interface PazSalvoRecord {
     email: string | null;
     linea: string | null;
     placa: string | null;
+    chasis: string | null;
+    modelo: string | null;
+    color: string | null;
+    motor: string | null;
     estado_obligacion: string | null;
     resultado_gestion: string | null;
     fecha_gestion: string | null;
@@ -13,6 +17,8 @@ export interface PazSalvoRecord {
     valor_acuerdo: number | string | null;
     valor_pagado_acuerdo: number | string | null;
     diferencia: number | string | null;
+    observacion_gestion: string | null;
+    cumple_condiciones: string | null;
 }
 
 export interface PazSalvoResponse {
@@ -21,50 +27,9 @@ export interface PazSalvoResponse {
     data: PazSalvoRecord[];
 }
 
-export interface LevantamientoRecord {
-    OBLIGACION: string | null;
-    ABOGADO: string | null;
-    FECHA_RADICACION: string | null;
-    FECHA_ORDEN: string | null;
-    FECHA_LEVANTAMIENTO: string | null;
-    ESTADO: string | null;
-}
 
-export interface LevantamientoResponse {
-    status: string;
-    total: number;
-    data: LevantamientoRecord[];
-}
 
-export interface AsignacionJuridicaRecord {
-    obligacion: string | null;
-    cedula: string | null;
-    nombre_cliente: string | null;
-    acreedor: string | null;
-    ciudad_correspondida: string | null;
-    departamento: string | null;
-    otro_si: string | null;
-    fecha_ejecucion_aval: string | null;
-    placa: string | null;
-    direccion: string | null;
-    valor_desembolso: number | string | null;
-    valor_ejecutado_aval: number | string | null;
-    correo: string | null;
-    marca: string | null;
-    referencia: string | null;
-    dni_codeudor: string | null;
-    nombre_codeudor: string | null;
-    producto: string | null;
-}
 
-export interface AsignacionJuridicaResponse {
-    status: string;
-    total: number;
-    page: number;
-    per_page: number;
-    total_pages: number;
-    data: AsignacionJuridicaRecord[];
-}
 
 export interface ContactoRecord {
     solicitud_id: string | null;
@@ -82,4 +47,32 @@ export interface ContactosResponse {
     status: string;
     total: number;
     data: ContactoRecord[];
+}
+
+export type Avalista = "Resfin" | "Moviaval" | "Avalogic";
+
+export interface EstadoCuentaRow {
+    fecha_pago: string;
+    capital_pagado: number | string;
+    interes_corriente: number | string;
+    interes_mora: number | string;
+    gastos_cobranza: number | string;
+    aval: number | string;
+    seguros: number | string;
+    total_pagado: number | string;
+}
+
+export interface EstadoCuentaResponse {
+    status: string;
+    avalista: Avalista;
+    obligacion: string;
+    estado_obligacion: string | null;
+    documento_tipo: string | null;
+    documento: string | null;
+    nombre_cliente: string | null;
+    saldo_actual: number | string | null;
+    dias_mora: number | null;
+    fecha_ejecucion: string | null;
+    pagos: EstadoCuentaRow[];
+    total_pagado: number | string;
 }

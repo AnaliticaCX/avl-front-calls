@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Organízate">
+  <!-- Arco izquierdo (navy) -->
+  <path d="M29.91 8.09 A 24 24 0 0 0 23.79 54.55" stroke="#092049" stroke-width="6" stroke-linecap="round"/>
+  <!-- Arco derecho (turquesa) -->
+  <path d="M34.09 8.09 A 24 24 0 0 1 40.21 54.55" stroke="#03AE9E" stroke-width="6" stroke-linecap="round"/>
+  <!-- Barras ascendentes -->
+  <path d="M21 47.5 V 42.5" stroke="#03AE9E" stroke-width="5" stroke-linecap="round"/>
+  <path d="M28.5 47.5 V 36" stroke="#03AE9E" stroke-width="5" stroke-linecap="round"/>
+  <!-- Barra alta + cola de la Q -->
+  <path d="M36.5 25 V 43.5 Q 36.5 47.5 40.5 47.5 H 49" stroke="#03AE9E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
