@@ -18,18 +18,29 @@ import { formatCurrency } from "../../utils/formatters";
 const sumColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuentaRow): number =>
     pagos.reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
 
+// "2025-07-18" viene sin hora: new Date() la interpreta como UTC y en Colombia
+// (UTC-5) se corre un día hacia atrás al formatear en hora local.
+const formatIsoDateDMY = (iso: string): string => {
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+};
+
+// Declaraciones de renta piden años fiscales completos (hasta 31 de dic), casi
+// nunca una fecha intermedia: elegir el año de una lista es más rápido que
+// navegar un calendario hasta encontrar "31 de diciembre".
+const ANIO_ACTUAL = new Date().getFullYear();
+const ANIOS_FISCALES = Array.from({ length: 10 }, (_, i) => {
+    const anio = String(ANIO_ACTUAL - i);
+    return { value: anio, label: anio };
+});
+
 export default function EstadoCuentaPage() {
     const [loanNumber, setLoanNumber] = useState("");
+    const [anioFiscal, setAnioFiscal] = useState("");
     const [result, setResult] = useState<EstadoCuentaResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const { begin, abort } = useAbortable();
-
-    // Van en el PDF pero no vienen de Athena: el liquidador los llena a mano
-    // antes de descargar. Días en mora arranca con el valor del sistema, pero
-    // queda editable por si el liquidador cita uno distinto.
-    const [diasMoraPdf, setDiasMoraPdf] = useState("");
-    const [liquidador, setLiquidador] = useState("");
 
     const cancelar = () => {
         abort();
@@ -48,14 +59,14 @@ export default function EstadoCuentaPage() {
         setError("");
         setResult(null);
         try {
+            const params: Record<string, string> = { loan_number: loanNumber.trim() };
+            if (anioFiscal) params.fecha_corte = `${anioFiscal}-12-31`;
             const data = await apiClient.get<EstadoCuentaResponse>(
                 "/api/quemadores/estado_cuenta/search",
-                { loan_number: loanNumber.trim() },
+                params,
                 signal
             );
             setResult(data);
-            setDiasMoraPdf(String(data.dias_mora ?? 0));
-            setLiquidador("");
         } catch (err) {
             if (isAbortError(err)) return;
             setError(err instanceof Error ? err.message : "Error al consultar el estado de cuenta");
@@ -112,6 +123,8 @@ export default function EstadoCuentaPage() {
                     <li>El avalista (Resfin / Moviaval / Avalogic) se detecta automáticamente por el tipo de negocio del crédito</li>
                     <li>La tabla agrupa los pagos por fecha en capital, intereses, mora, gastos de cobranza, aval y seguros</li>
                     <li>Conceptos como garantía mobiliaria, GPS o comisiones no se incluyen (no forman parte del estado de cuenta)</li>
+                    <li>Por defecto solo se traen los pagos recibidos <strong>desde la subrogación</strong> (fecha de ejecución del aval) hasta hoy — antes de esa fecha el acreedor era Crediorbe, no el avalista</li>
+                    <li>Para declaraciones de renta: elige el <strong>año fiscal</strong> para acotar además a los pagos de ese año (del 1 de enero al 31 de diciembre)</li>
                 </ul>
             </InfoCallout>
 
@@ -123,6 +136,15 @@ export default function EstadoCuentaPage() {
                             value={loanNumber}
                             onChange={setLoanNumber}
                             placeholder="Ej: 2185363"
+                            disabled={loading}
+                        />
+                    </div>
+                    <div className="w-full max-w-xs">
+                        <Input
+                            label="Año fiscal (opcional)"
+                            value={anioFiscal}
+                            onChange={setAnioFiscal}
+                            options={ANIOS_FISCALES}
                             disabled={loading}
                         />
                     </div>
@@ -171,6 +193,15 @@ export default function EstadoCuentaPage() {
                                         tone={loanStatusTone(result.estado_obligacion)}
                                     />
                                 )}
+                                <span className="pill bg-ink-50 text-ink-600">
+                                    {result.fecha_corte
+                                        ? result.periodo_desde === `${result.fecha_corte.slice(0, 4)}-01-01`
+                                            ? `Año fiscal ${result.fecha_corte.slice(0, 4)}`
+                                            : `Año fiscal ${result.fecha_corte.slice(0, 4)} (desde subrogación, ${formatIsoDateDMY(result.periodo_desde!)})`
+                                        : result.periodo_desde
+                                          ? `Desde subrogación (${formatIsoDateDMY(result.periodo_desde)})`
+                                          : "Histórico completo"}
+                                </span>
                             </div>
                         </div>
 
@@ -203,32 +234,11 @@ export default function EstadoCuentaPage() {
 
                         <button
                             type="button"
-                            onClick={() =>
-                                downloadEstadoCuentaPDF(result, {
-                                    diasMora: diasMoraPdf,
-                                    liquidador,
-                                })
-                            }
+                            onClick={() => downloadEstadoCuentaPDF(result)}
                             className="btn btn-primary"
                         >
                             Descargar PDF
                         </button>
-                    </div>
-
-                    <div className="card grid gap-4 p-5 sm:grid-cols-2">
-                        <Input
-                            label="Días en mora (para el PDF)"
-                            value={diasMoraPdf}
-                            onChange={setDiasMoraPdf}
-                            type="number"
-                            hint="Arranca con el valor del sistema; ajústalo si el liquidador cita uno distinto."
-                        />
-                        <Input
-                            label="Liquidador"
-                            value={liquidador}
-                            onChange={setLiquidador}
-                            placeholder="Nombre de quien gestiona el caso"
-                        />
                     </div>
 
                     {result.avalista === "Avalogic" && (

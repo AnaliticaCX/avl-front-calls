@@ -125,6 +125,13 @@ const formatDMY = (value: string): string => {
     return `${dd}/${mm}/${d.getFullYear()}`;
 };
 
+// fecha_corte/periodo_desde vienen como "YYYY-MM-DD" sin hora: new Date() los
+// interpreta como UTC y en Colombia (UTC-5) se corren un día hacia atrás.
+const formatIsoDateDMY = (iso: string): string => {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+};
+
 const MESES = [
     'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
@@ -223,13 +230,6 @@ const ESTADO_CUENTA_COLUMNS: { key: keyof EstadoCuentaRow; label: string }[] = [
     { key: 'total_pagado', label: 'TOTAL PAGADO' },
 ];
 
-export interface EstadoCuentaPdfExtras {
-    /** Días en mora a citar en el PDF — puede diferir del automático si el liquidador lo ajusta. */
-    diasMora?: string | number;
-    /** Nombre de quien gestiona el caso. No viene de Athena: lo llena el liquidador a mano. */
-    liquidador?: string;
-}
-
 const sumEstadoCuentaColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuentaRow): number =>
     pagos.reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
 
@@ -237,10 +237,7 @@ const sumEstadoCuentaColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuenta
  * Genera el PDF del estado de cuenta con la plantilla legal del avalista
  * (Resfin / Moviaval / Avalogic) que ya viene resuelta desde el backend.
  */
-export const downloadEstadoCuentaPDF = (
-    data: EstadoCuentaResponse,
-    extras: EstadoCuentaPdfExtras = {}
-): void => {
+export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
     const template = ESTADO_CUENTA_TEMPLATES[data.avalista];
 
     const headerRow = ESTADO_CUENTA_COLUMNS.map((c) => `<th>${c.label}</th>`).join('');
@@ -260,8 +257,7 @@ export const downloadEstadoCuentaPDF = (
     }).join('');
 
     const totalPagadoFmt = formatCurrency(data.total_pagado as number);
-    const diasMora = extras.diasMora ?? data.dias_mora ?? 0;
-    const liquidador = extras.liquidador?.trim();
+    const diasMora = data.dias_mora ?? 0;
     const { mes, anio } = mesAnioEjecucion(data.fecha_ejecucion);
     const antesTabla = template.antesTabla(data.obligacion, mes, anio);
     const fechaEmision = new Date().toLocaleDateString('es-CO', {
@@ -281,17 +277,18 @@ export const downloadEstadoCuentaPDF = (
     .letterhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .logo { height: 56px; width: auto; max-width: 220px; object-fit: contain; }
     .empresa { font-size: 16px; font-weight: bold; color: #375a6f; }
-    h1 { font-size: 16px; text-align: center; margin: 0 0 20px; }
+    h1 { font-size: 16px; text-align: center; margin: 0 0 6px; }
+    .periodo { text-align: center; font-size: 11px; color: #6b7280; margin: 0 0 20px; }
     p { margin: 0 0 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 16px; }
     th { background: #375a6f; color: #fff; padding: 6px 4px; text-align: center; }
     td { border: 1px solid #e5e7eb; padding: 5px 4px; text-align: center; }
     tr:nth-child(even) td { background: #f9fafb; }
-    tfoot td { border-top: 2px solid #375a6f; background: #eef2f6; }
-    .ficha { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; border: 1px solid #e5e7eb;
-        border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 11px; }
-    .ficha div { display: flex; justify-content: space-between; gap: 8px; }
-    .ficha-label { color: #6b7280; font-weight: 600; }
+    tfoot td { background: #375a6f; color: #fff; font-weight: bold; }
+    .dias-mora { display: inline-block; border: 1px solid #375a6f; border-radius: 4px;
+        overflow: hidden; margin: 4px 0 16px; min-width: 110px; text-align: center; }
+    .dias-mora-label { background: #375a6f; color: #fff; font-weight: bold; padding: 6px 10px; font-size: 10px; }
+    .dias-mora-value { padding: 10px; font-size: 16px; font-weight: bold; }
     .cierre { margin-top: 24px; }
     @page { size: portrait; margin: 16mm; }
 </style>
@@ -302,12 +299,13 @@ export const downloadEstadoCuentaPDF = (
         <img class="logo" src="${window.location.origin}${template.logo}" alt="${escapeHtmlRaw(template.empresa)}" />
     </div>
     <h1>ESTADO DE CUENTA</h1>
-    <div class="ficha">
-        <div><span class="ficha-label">Obligación</span><span>${escapeHtmlRaw(data.obligacion)}</span></div>
-        <div><span class="ficha-label">Días en mora</span><span>${escapeHtmlRaw(diasMora)}</span></div>
-        <div><span class="ficha-label">Cliente</span><span>${escapeHtmlRaw(data.nombre_cliente)}</span></div>
-        <div><span class="ficha-label">Liquidador</span><span>${escapeHtmlRaw(liquidador || '—')}</span></div>
-    </div>
+    <p class="periodo">${
+        data.fecha_corte
+            ? `Período: año fiscal ${data.fecha_corte.slice(0, 4)} (${formatIsoDateDMY(data.periodo_desde ?? data.fecha_corte)} — ${formatIsoDateDMY(data.fecha_corte)})`
+            : data.periodo_desde
+              ? `Período: desde la subrogación (${formatIsoDateDMY(data.periodo_desde)}) hasta la fecha`
+              : 'Período: histórico completo'
+    }</p>
     <p>${escapeHtmlRaw(template.intro)}</p>
     ${antesTabla ? `<p>${escapeHtmlRaw(antesTabla)}</p>` : ''}
     <table>
@@ -315,7 +313,11 @@ export const downloadEstadoCuentaPDF = (
         <tbody>${bodyRows}</tbody>
         <tfoot><tr>${totalsRow}</tr></tfoot>
     </table>
-    ${template.despuesTabla(totalPagadoFmt, Number(diasMora))}
+    ${template.despuesTabla(totalPagadoFmt, diasMora)}
+    <div class="dias-mora">
+        <div class="dias-mora-label">Días de Mora</div>
+        <div class="dias-mora-value">${escapeHtmlRaw(diasMora)}</div>
+    </div>
     <div class="cierre">
         <p>Cordialmente,</p>
         <p>Servicio al cliente<br/>${escapeHtmlRaw(template.empresa)}<br/>${escapeHtmlRaw(template.email)}</p>

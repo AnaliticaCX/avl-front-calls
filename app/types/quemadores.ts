@@ -75,4 +75,6 @@ export interface EstadoCuentaResponse {
     fecha_ejecucion: string | null;
     pagos: EstadoCuentaRow[];
     total_pagado: number | string;
+    fecha_corte: string | null;
+    periodo_desde: string | null;
 }
