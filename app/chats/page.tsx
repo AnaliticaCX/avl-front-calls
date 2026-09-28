@@ -39,6 +39,8 @@ interface ChatRow {
     agent_id?: string;
     chat_duration?: string;
     feeling?: string;
+    cod_act?: string;
+    description_cod_act?: string;
     is_transferred?: boolean;
     all_agents?: string[];
 }
@@ -73,6 +75,7 @@ function toExcelRow(chat: ChatRow) {
         Fecha: chat.date ? formatDate(chat.date) : "",
         Canal: chat.channel || "",
         Sentimiento: chat.feeling || "",
+        Tipificación: chat.description_cod_act || chat.cod_act || "",
         Transferida: chat.is_transferred ? "Sí" : "No",
         "Agentes (si transferida)": chat.all_agents ? chat.all_agents.join(" → ") : "",
     };
@@ -269,6 +272,12 @@ export default function ChatsPage() {
         },
         { key: "conn_id", label: "ID conversación", secondary: true },
         { key: "chat_duration", label: "Duración", secondary: true },
+        {
+            key: "description_cod_act",
+            label: "Tipificación",
+            secondary: true,
+            render: (_: any, row: ChatRow) => row.description_cod_act || row.cod_act || "—",
+        },
         {
             key: "all_agents",
             label: "Recorrido de agentes",

@@ -42,6 +42,8 @@ interface ChatSummary {
     chat_duration?: string;
     customer_chars?: string;
     feeling?: string;
+    cod_act?: string;
+    description_cod_act?: string;
     is_transferred?: boolean;  // Indica si la conversación fue transferida
     all_agents?: string[];  // Todos los agentes que participaron
 }
@@ -203,6 +205,17 @@ export default function ChatDetailPage() {
                         <div>
                             <span className="text-sm text-ink-500 block mb-1">Duración</span>
                             <p className="font-medium text-ink-900">{summary.chat_duration}</p>
+                        </div>
+                    )}
+                    {(summary.description_cod_act || summary.cod_act) && (
+                        <div>
+                            <span className="text-sm text-ink-500 block mb-1">Tipificación</span>
+                            <p className="font-medium text-ink-900">
+                                {summary.description_cod_act || summary.cod_act}
+                                {summary.description_cod_act && summary.cod_act && (
+                                    <span className="text-ink-500 font-normal"> ({summary.cod_act})</span>
+                                )}
+                            </p>
                         </div>
                     )}
                 </div>
