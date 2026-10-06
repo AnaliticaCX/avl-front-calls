@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Clock, Download, FileSpreadsheet, HelpCircle, Laptop, ListChecks, Loader2, Pause, Play, Radar, RefreshCw, Timer, Trash2, Upload, UploadCloud, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Download, FileSpreadsheet, HelpCircle, Laptop, ListChecks, Loader2, Pause, Play, Radar, RefreshCw, SearchX, Timer, Trash2, Upload, UploadCloud, WifiOff, X, XCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ErrorMessage from "../components/common/ErrorMessage";
 import LoadingSpinner from "../components/common/LoadingSpinner";
@@ -535,7 +535,10 @@ export default function RuafPage() {
     const pct = terminado && descargado ? 0 : pctCalculado;
     // si el EC2 no responde, disponible y procesando llegan los dos en false
     const sinConexion = !!estado && !estado.disponible && !estado.procesando;
-    const puedeSubir = !!estado && estado.disponible && !estado.procesando && etapa === null;
+    // salida_ok === false: el EC2 responde pero no tiene salida a RUAF (túnel/Tailscale caído).
+    // El scraper espera sin gastar cédulas, pero nada avanza hasta que vuelva.
+    const sinSalida = !!estado && estado.salida_ok === false;
+    const puedeSubir = !!estado && estado.disponible && !estado.procesando && !sinSalida && etapa === null;
     const arrancando = etapa === "iniciando";
 
     return (
@@ -587,6 +590,11 @@ export default function RuafPage() {
                                             <Loader2 size={16} className="animate-spin" />
                                             Iniciando lote
                                         </span>
+                                    ) : sinSalida ? (
+                                        <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-critical-soft text-critical inline-flex items-center gap-2">
+                                            <WifiOff size={16} />
+                                            Sin salida a RUAF
+                                        </span>
                                     ) : estado.procesando ? (
                                         <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-caution-soft text-caution inline-flex items-center gap-2">
                                             <Loader2 size={16} className="animate-spin" />
@@ -607,6 +615,13 @@ export default function RuafPage() {
                                 {arrancando ? (
                                     <p className="text-sm text-ink-500">
                                         Lote recibido. Esperando que el servidor de RUAF empiece a procesarlo…
+                                    </p>
+                                ) : sinSalida ? (
+                                    <p className="text-sm text-critical">
+                                        El servidor no tiene conexión con RUAF.{" "}
+                                        {estado.procesando
+                                            ? "El lote quedó en espera y no se pierde ninguna cédula: continúa solo cuando vuelva la conexión."
+                                            : "No se pueden procesar lotes hasta que vuelva la conexión."}
                                     </p>
                                 ) : estado.procesando ? (
                                     <p className="text-sm text-ink-500">
@@ -651,11 +666,13 @@ export default function RuafPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                         <StatTile icon={ListChecks} label="Total" value={estado.total} colorClass="bg-ink-100 text-ink-600" delay={0} />
-                        <StatTile icon={CheckCircle2} label="Exitosas" value={estado.exitosas} colorClass="bg-positive-soft text-positive" delay={0.05} />
-                        <StatTile icon={Clock} label="Procesadas" value={estado.procesadas} colorClass="bg-primary/10 text-primary" delay={0.1} />
-                        <StatTile icon={Timer} label="Pendientes" value={estado.pendientes} colorClass="bg-caution-soft text-caution" delay={0.15} />
+                        <StatTile icon={Clock} label="Procesadas" value={estado.procesadas} colorClass="bg-primary/10 text-primary" delay={0.05} />
+                        <StatTile icon={Timer} label="Pendientes" value={estado.pendientes} colorClass="bg-caution-soft text-caution" delay={0.1} />
+                        <StatTile icon={CheckCircle2} label="Exitosas" value={estado.exitosas} colorClass="bg-positive-soft text-positive" delay={0.15} />
+                        <StatTile icon={SearchX} label="Sin registro en RUAF" value={estado.sin_resultado ?? 0} colorClass="bg-ink-100 text-ink-600" delay={0.2} />
+                        <StatTile icon={XCircle} label="Con error" value={estado.errores ?? 0} colorClass="bg-critical-soft text-critical" delay={0.25} />
                     </div>
 
                     <motion.div
@@ -713,6 +730,8 @@ export default function RuafPage() {
                                     <span>
                                         {sinConexion
                                             ? "No se puede subir un lote: el servidor de RUAF no responde ahora mismo."
+                                            : sinSalida
+                                            ? "No se puede subir un lote: el servidor no tiene conexión con RUAF en este momento."
                                             : "Hay un lote procesando ahora — no se puede subir uno nuevo hasta que termine o lo pauses."}
                                     </span>
                                 </div>
