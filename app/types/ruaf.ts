@@ -5,8 +5,12 @@ export interface RuafEstado {
     procesadas: number;
     pendientes: number;
     exitosas: number;
+    sin_resultado?: number;
+    errores?: number;
     tiempo_estimado_minutos: number;
     actualizado: string;
+    /** false = el EC2 no tiene salida a RUAF (túnel/Tailscale caído); null/undefined = no reportado */
+    salida_ok?: boolean | null;
 }
 
 export interface CorridaHistorial {
