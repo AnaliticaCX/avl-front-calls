@@ -103,6 +103,7 @@ interface Contexto {
     ejecucion: { mes: string; anio: string };
     /** Mes/año en que el avalista actual adquirió la cartera. */
     adquisicion: { mes: string; anio: string };
+    obligacion: string;
 }
 
 interface Plantilla {
@@ -115,13 +116,6 @@ interface Plantilla {
     cierre: string[];
     pie?: string[];
 }
-
-const CIERRE_RESFIN = [
-    'Cordialmente,',
-    'Luisa Durango Hernández',
-    'Analista Administrativa Y Jurídica',
-    'administracion@resfin.com.co',
-];
 
 const PIE_RESFIN = ['Carrera 30 7 AA 207 – Ed. Torre SCAGLIA', 'Medellín – Antioquia', 'Teléfono 310 4329 400'];
 
@@ -139,17 +133,17 @@ const introAval = (nombre: string): string =>
     `Créditos Orbe S.A.S. (en adelante Crediorbe), ${nombre} avaló el pagaré otorgado por usted a ` +
     'Crediorbe garantizando así el pago de la obligación.';
 
-const subrogacionAval = (nombre: string, mes: string, anio: string): string =>
-    'Por el incumplimiento en los pagos y la altura de la mora en la obligación a su cargo, ' +
+const subrogacionAval = (nombre: string, obligacion: string, mes: string, anio: string): string =>
+    `Por el incumplimiento en los pagos y la altura de la mora en la obligación con número de crédito (${obligacion}), ` +
     `Crediorbe efectuó el cobro a ${nombre} y esta última procedió con el pago del crédito, motivo por el ` +
     'cual adquirió la calidad de acreedor mediante la figura de la subrogación legal, ' +
     `en el mes de ${mes} del año ${anio}.`;
 
-const introCompraCartera = (nombre: string): string =>
+const introCompraCartera = (nombre: string, obligacion: string): string =>
     `${nombre} S.A.S. (en adelante, ${nombre}) es una sociedad dedicada a la compraventa de cartera. ` +
     `En virtud del contrato celebrado para tal fin, ${nombre} adquirió de Créditos Orbe S.A.S. ` +
-    '(CrediOrbe by Galgo) la obligación crediticia a su cargo, originada en el pagaré suscrito para la ' +
-    'financiación de la motocicleta.';
+    `(CrediOrbe by Galgo) la obligación crediticia con número de crédito (${obligacion}), originada en el ` +
+    'pagaré suscrito para la financiación de la motocicleta.';
 
 const subrogacionCompraCartera = (nombre: string, mes: string, anio: string): string =>
     `En consecuencia, y conforme a la figura de la subrogación legal, ${nombre} asumió la calidad de ` +
@@ -169,38 +163,28 @@ const posTablaConDiasMora = (c: Contexto): BloquePosTabla[] => [
 
 // Una plantilla por avalista y tipo de documento. Aval: el avalista pagó la obligación a
 // Crediorbe (subrogación por ejecución). Compra de cartera: la obligación pasó de un
-// avalista a otro. Avalogic solo tiene compra de cartera. Textos tomados de los formatos
-// que se vienen emitiendo (confirmado con el usuario el 2026-10-08); la compra de cartera
-// de Resfin no tiene formato propio y replica la de Moviaval con los datos de Resfin.
+// avalista a otro. Avalogic solo tiene compra de cartera y Resfin solo aval (nunca compra
+// cartera). Textos tomados de los formatos que se vienen emitiendo (confirmado con el usuario
+// el 2026-10-08).
 const PLANTILLAS: Record<string, Plantilla> = {
     'Resfin:aval': {
         empresa: 'RESPALDO FINANCIERO S.A.S',
         logo: '/estado_cuenta/resfin.png',
         ciudad: 'Medellín',
-        parrafos: (c) => [introAval('Resfin'), subrogacionAval('Resfin', c.ejecucion.mes, c.ejecucion.anio)],
-        posTabla: posTablaResfin,
-        mostrarDiasMora: false,
-        cierre: CIERRE_RESFIN,
-        pie: PIE_RESFIN,
-    },
-    'Resfin:compra': {
-        empresa: 'RESPALDO FINANCIERO S.A.S',
-        logo: '/estado_cuenta/resfin.png',
-        ciudad: 'Medellín',
         parrafos: (c) => [
-            introCompraCartera('Resfin'),
-            subrogacionCompraCartera('Resfin', c.adquisicion.mes, c.adquisicion.anio),
+            introAval('Resfin'),
+            subrogacionAval('Resfin', c.obligacion, c.ejecucion.mes, c.ejecucion.anio),
         ],
         posTabla: posTablaResfin,
         mostrarDiasMora: false,
-        cierre: CIERRE_RESFIN,
+        cierre: cierreServicioAlCliente('Resfin', 'administracion@resfin.com.co'),
         pie: PIE_RESFIN,
     },
     'Moviaval:aval': {
         empresa: 'Moviaval S.A.S.',
         logo: '/estado_cuenta/moviaval.png',
         ciudad: 'Medellín',
-        parrafos: (c) => [introAval('Moviaval'), subrogacionAval('Moviaval', c.ejecucion.mes, c.ejecucion.anio)],
+        parrafos: (c) => [introAval('Moviaval'), subrogacionAval('Moviaval', c.obligacion, c.ejecucion.mes, c.ejecucion.anio)],
         posTabla: posTablaConDiasMora,
         mostrarDiasMora: true,
         cierre: cierreServicioAlCliente('Moviaval S.A.S.', 'servicioalcliente@moviaval.com'),
@@ -210,7 +194,7 @@ const PLANTILLAS: Record<string, Plantilla> = {
         logo: '/estado_cuenta/moviaval.png',
         ciudad: 'Pereira',
         parrafos: (c) => [
-            introCompraCartera('Moviaval'),
+            introCompraCartera('Moviaval', c.obligacion),
             subrogacionCompraCartera('Moviaval', c.adquisicion.mes, c.adquisicion.anio),
         ],
         posTabla: posTablaConDiasMora,
@@ -222,7 +206,7 @@ const PLANTILLAS: Record<string, Plantilla> = {
         logo: '/estado_cuenta/avalogic.png',
         ciudad: 'Pereira',
         parrafos: (c) => [
-            introCompraCartera('Avalogic'),
+            introCompraCartera('Avalogic', c.obligacion),
             subrogacionCompraCartera('Avalogic', c.adquisicion.mes, c.adquisicion.anio),
         ],
         posTabla: posTablaConDiasMora,
@@ -231,9 +215,12 @@ const PLANTILLAS: Record<string, Plantilla> = {
     },
 };
 
-/** Avalogic solo emite compra de cartera, aunque el historial no muestre el avalista anterior. */
+/**
+ * Avalogic solo emite compra de cartera, aunque el historial no muestre el avalista anterior.
+ * Resfin nunca compra cartera: aunque la haya recibido de otro avalista, emite la de aval.
+ */
 const esCompraCartera = (avalista: Avalista, data: EstadoCuentaResponse): boolean =>
-    avalista === 'Avalogic' || data.compra_cartera;
+    avalista === 'Avalogic' || (avalista !== 'Resfin' && data.compra_cartera);
 
 export const plantillaDe = (data: EstadoCuentaResponse): Plantilla =>
     PLANTILLAS[`${data.avalista}:${esCompraCartera(data.avalista, data) ? 'compra' : 'aval'}`];
@@ -255,6 +242,7 @@ export const construirDocumento = (data: EstadoCuentaResponse): EstadoCuentaDocu
     const contexto: Contexto = {
         total: formatCurrency(data.total_pagado as number),
         diasMora,
+        obligacion: String(data.obligacion),
         ejecucion,
         // Sin historial de adquisición se cae a la fecha de ejecución del aval.
         adquisicion: data.fecha_adquisicion ? mesAnio(data.fecha_adquisicion) : ejecucion,
