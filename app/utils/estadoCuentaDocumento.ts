@@ -134,7 +134,7 @@ const introAval = (nombre: string): string =>
     'Crediorbe garantizando así el pago de la obligación.';
 
 const subrogacionAval = (nombre: string, obligacion: string, mes: string, anio: string): string =>
-    `Por el incumplimiento en los pagos y la altura de la mora en la obligación con número de crédito (${obligacion}), ` +
+    `Por el incumplimiento en los pagos y la altura de la mora en la obligación con número de crédito ${obligacion}, ` +
     `Crediorbe efectuó el cobro a ${nombre} y esta última procedió con el pago del crédito, motivo por el ` +
     'cual adquirió la calidad de acreedor mediante la figura de la subrogación legal, ' +
     `en el mes de ${mes} del año ${anio}.`;
@@ -142,7 +142,7 @@ const subrogacionAval = (nombre: string, obligacion: string, mes: string, anio: 
 const introCompraCartera = (nombre: string, obligacion: string): string =>
     `${nombre} S.A.S. (en adelante, ${nombre}) es una sociedad dedicada a la compraventa de cartera. ` +
     `En virtud del contrato celebrado para tal fin, ${nombre} adquirió de Créditos Orbe S.A.S. ` +
-    `(CrediOrbe by Galgo) la obligación crediticia con número de crédito (${obligacion}), originada en el ` +
+    `(CrediOrbe by Galgo) la obligación crediticia con número de crédito ${obligacion}, originada en el ` +
     'pagaré suscrito para la financiación de la motocicleta.';
 
 const subrogacionCompraCartera = (nombre: string, mes: string, anio: string): string =>
