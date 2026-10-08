@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { Cdr9Record } from '../types/cdr';
-import type { Avalista, EstadoCuentaResponse, EstadoCuentaRow } from '../types/quemadores';
-import { formatCurrency } from './formatters';
+import type { EstadoCuentaResponse } from '../types/quemadores';
+import { construirDocumento, ESTADO_CUENTA_COLUMNS, filasTabla, nombreArchivo } from './estadoCuentaDocumento';
 
 export const downloadJSON = (data: any, filename: string): void => {
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -117,169 +117,43 @@ export const downloadPDF = (
     };
 };
 
-const formatDMY = (value: string): string => {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return `${dd}/${mm}/${d.getFullYear()}`;
-};
-
-// fecha_corte/periodo_desde vienen como "YYYY-MM-DD" sin hora: new Date() los
-// interpreta como UTC y en Colombia (UTC-5) se corren un día hacia atrás.
-const formatIsoDateDMY = (iso: string): string => {
-    const [y, m, d] = iso.split('-');
-    return `${d}/${m}/${y}`;
-};
-
-const MESES = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-];
-
-// Se lee año/mes del texto ISO directamente para no depender de la zona horaria del navegador.
-const mesAnioEjecucion = (fecha: string | null): { mes: string; anio: string } => {
-    const m = fecha?.match(/^(\d{4})-(\d{2})/);
-    if (!m) return { mes: '[sin fecha de ejecución]', anio: '[sin fecha de ejecución]' };
-    return { mes: MESES[Number(m[2]) - 1], anio: m[1] };
-};
-
-interface AvalistaTemplate {
-    empresa: string;
-    email: string;
-    /** Logo real extraído de la plantilla original (public/estado_cuenta/). */
-    logo: string;
-    intro: string;
-    antesTabla: (obligacion: string, mes: string, anio: string) => string;
-    despuesTabla: (totalPagado: string, diasMora: number | null) => string;
-}
-
-// El texto legal de cada avalista se identifica por loan.business_type en el backend
-// (ver app/services/quemadores/estado_cuenta_service.py). Solo existe la plantilla
-// "ejecutado" (aval) de Moviaval — nunca la de compra de cartera/subrogación — y el
-// mismo rol de garante para Avalogic, aunque su business_type diga "Venta Cartera".
-// Decisión de negocio confirmada con el usuario el 2026-09-23.
-const ESTADO_CUENTA_TEMPLATES: Record<Avalista, AvalistaTemplate> = {
-    Resfin: {
-        empresa: 'RESPALDO FINANCIERO S.A.S',
-        email: 'servicioalcliente@resfin.com.co',
-        logo: '/estado_cuenta/resfin.png',
-        intro:
-            'Resfin S.A.S. (en adelante Resfin) es una sociedad que se dedica principalmente a ' +
-            'avalar títulos valores otorgados dentro del territorio nacional que garantizan el pago ' +
-            'de créditos de consumo. Como es de su conocimiento, en virtud del contrato de crédito ' +
-            'celebrado entre usted y Créditos Orbe S.A.S. (en adelante Crediorbe), Resfin avaló el ' +
-            'pagaré otorgado por usted a Crediorbe garantizando así el pago de la obligación.',
-        antesTabla: (obligacion, mes, anio) =>
-            'Por el incumplimiento en los pagos y la altura de la mora en la obligación con número de crédito ' +
-            `${obligacion}, Crediorbe efectuó el cobro a Resfin y esta última procedió con el pago del crédito, ` +
-            'motivo por el cual adquirió la calidad de acreedor mediante la figura de la subrogación legal, ' +
-            `en el mes de ${mes} del año ${anio}.`,
-        despuesTabla: (total) => `
-            <p>En la imagen se evidencia que el valor total de los pagos efectuados totalizan la suma de <strong>${total}</strong>.</p>
-            <p>La anterior imagen ilustra el saldo de la deuda a la fecha con sus respectivos conceptos.</p>
-        `,
-    },
-    Moviaval: {
-        empresa: 'Moviaval S.A.S.',
-        email: 'servicioalcliente@moviaval.com',
-        logo: '/estado_cuenta/moviaval.png',
-        intro:
-            'Moviaval S.A.S. es una sociedad cuya actividad principal consiste en la prestación de ' +
-            'avales sobre títulos valores suscritos en el territorio nacional, destinados a respaldar ' +
-            'obligaciones derivadas de créditos de consumo. En tal sentido, y con ocasión del contrato ' +
-            'de crédito celebrado entre usted y Créditos Orbe S.A.S. (en adelante, "Crediorbe"), ' +
-            'Moviaval otorgó el aval del pagaré suscrito por usted a favor de dicha entidad, ' +
-            'garantizando el cumplimiento de la obligación crediticia asumida.',
-        antesTabla: (obligacion, mes, anio) =>
-            'Ante el incumplimiento en el pago de las cuotas, y la altura de la mora en la obligación con ' +
-            `número de crédito ${obligacion}, Crediorbe hizo efectivo el cobro del aval, en el mes ${mes} ` +
-            `del año ${anio}, este último procedió a cancelar el saldo adeudado. Debido a dicho pago, ` +
-            'Moviaval adquirió la condición de acreedor de la obligación, por ministerio de la subrogación legal.',
-        despuesTabla: (total, diasMora) => `
-            <p>En la imagen se evidencia que el valor total de los pagos efectuados totalizan la suma de <strong>${total}</strong>.</p>
-            <p>La imagen anterior refleja el valor total a cancelar a la fecha de expedición del
-            presente estado de cuenta, registrándose un período de mora de <strong>${diasMora ?? 0}</strong> días.</p>
-        `,
-    },
-    Avalogic: {
-        empresa: 'Avalogic S.A.S.',
-        email: 'servicioalcliente@avalogicsas.com',
-        logo: '/estado_cuenta/avalogic.png',
-        // Pendiente: la plantilla que se recibió para Avalogic reutilizaba el texto
-        // legal de Resfin sin corregirlo. Se deja este marcador hasta que llegue el
-        // texto definitivo — no se debe enviar a un cliente con este párrafo.
-        intro:
-            '[PENDIENTE — falta el texto legal definitivo de Avalogic. No enviar este documento ' +
-            'a un cliente hasta reemplazar este párrafo.]',
-        antesTabla: () => '',
-        despuesTabla: (total) => `
-            <p>En la imagen se evidencia que el valor total de los pagos efectuados totalizan la suma de <strong>${total}</strong>.</p>
-        `,
-    },
-};
-
-const ESTADO_CUENTA_COLUMNS: { key: keyof EstadoCuentaRow; label: string }[] = [
-    { key: 'fecha_pago', label: 'FECHA DE PAGO' },
-    { key: 'capital_pagado', label: 'CAPITAL PAGADO' },
-    { key: 'interes_corriente', label: 'INTERÉS CORRIENTE' },
-    { key: 'interes_mora', label: 'INTERÉS DE MORA' },
-    { key: 'gastos_cobranza', label: 'GASTOS DE COBRANZA' },
-    { key: 'aval', label: 'AVAL' },
-    { key: 'seguros', label: 'SEGUROS' },
-    { key: 'total_pagado', label: 'TOTAL PAGADO' },
-];
-
-const sumEstadoCuentaColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuentaRow): number =>
-    pagos.reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
-
 /**
- * Genera el PDF del estado de cuenta con la plantilla legal del avalista
- * (Resfin / Moviaval / Avalogic) que ya viene resuelta desde el backend.
+ * Genera el PDF del estado de cuenta con la plantilla legal que corresponde al avalista y al
+ * tipo de documento (aval o compra de cartera), ya resueltos desde el backend.
  */
 export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
-    const template = ESTADO_CUENTA_TEMPLATES[data.avalista];
+    const doc = construirDocumento(data);
+    const { filas, totales } = filasTabla(data);
 
     const headerRow = ESTADO_CUENTA_COLUMNS.map((c) => `<th>${c.label}</th>`).join('');
-    const bodyRows = data.pagos
-        .map((row) => {
-            const cells = ESTADO_CUENTA_COLUMNS.map((c) => {
-                const raw = row[c.key];
-                const text = c.key === 'fecha_pago' ? formatDMY(String(raw)) : formatCurrency(raw as number);
-                return `<td>${text}</td>`;
-            }).join('');
-            return `<tr>${cells}</tr>`;
-        })
-        .join('');
-    const totalsRow = ESTADO_CUENTA_COLUMNS.map((c, i) => {
-        if (i === 0) return '<td><strong>TOTALES</strong></td>';
-        return `<td><strong>${formatCurrency(sumEstadoCuentaColumn(data.pagos, c.key))}</strong></td>`;
-    }).join('');
+    const bodyRows = filas.map((cells) => `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('');
+    const totalsRow = totales.map((c) => `<td><strong>${c}</strong></td>`).join('');
 
-    const totalPagadoFmt = formatCurrency(data.total_pagado as number);
-    const diasMora = data.dias_mora ?? 0;
-    const { mes, anio } = mesAnioEjecucion(data.fecha_ejecucion);
-    const antesTabla = template.antesTabla(data.obligacion, mes, anio);
-    const fechaEmision = new Date().toLocaleDateString('es-CO', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
+    const posTabla = doc.posTabla
+        .map((bloque) =>
+            // El hueco del liquidador de Optimus solo existe en el Word.
+            bloque.tipo === 'liquidador'
+                ? ''
+                : `<p>${bloque.segmentos
+                      .map((s) => (s.b ? `<strong>${escapeHtmlRaw(s.t)}</strong>` : escapeHtmlRaw(s.t)))
+                      .join('')}</p>`
+        )
+        .join('');
+    const [saludo, ...firma] = doc.cierre;
 
     const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>Estado de cuenta - ${escapeHtmlRaw(data.obligacion)}</title>
+<title>${escapeHtmlRaw(nombreArchivo(data))}</title>
 <style>
     * { box-sizing: border-box; }
     body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; margin: 32px; font-size: 12px; line-height: 1.6; }
     .letterhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .logo { height: 56px; width: auto; max-width: 220px; object-fit: contain; }
-    .empresa { font-size: 16px; font-weight: bold; color: #375a6f; }
     h1 { font-size: 16px; text-align: center; margin: 0 0 6px; }
     .periodo { text-align: center; font-size: 11px; color: #6b7280; margin: 0 0 20px; }
-    p { margin: 0 0 12px; }
+    p { margin: 0 0 12px; text-align: justify; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 16px; }
     th { background: #375a6f; color: #fff; padding: 6px 4px; text-align: center; }
     td { border: 1px solid #e5e7eb; padding: 5px 4px; text-align: center; }
@@ -290,38 +164,39 @@ export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
     .dias-mora-label { background: #375a6f; color: #fff; font-weight: bold; padding: 6px 10px; font-size: 10px; }
     .dias-mora-value { padding: 10px; font-size: 16px; font-weight: bold; }
     .cierre { margin-top: 24px; }
+    .cierre p { text-align: left; }
+    .pie { margin-top: 12px; text-align: center; }
+    .pie p { text-align: center; margin: 0; }
     @page { size: portrait; margin: 16mm; }
 </style>
 </head>
 <body>
     <div class="letterhead">
-        <div>Medellín, ${fechaEmision}</div>
-        <img class="logo" src="${window.location.origin}${template.logo}" alt="${escapeHtmlRaw(template.empresa)}" />
+        <div>${escapeHtmlRaw(doc.ciudad)}, ${escapeHtmlRaw(doc.fecha)}</div>
+        <img class="logo" src="${window.location.origin}${doc.logo}" alt="${escapeHtmlRaw(doc.empresa)}" />
     </div>
     <h1>ESTADO DE CUENTA</h1>
-    <p class="periodo">${
-        data.fecha_corte
-            ? `Período: año fiscal ${data.fecha_corte.slice(0, 4)} (${formatIsoDateDMY(data.periodo_desde ?? data.fecha_corte)} — ${formatIsoDateDMY(data.fecha_corte)})`
-            : data.periodo_desde
-              ? `Período: desde la subrogación (${formatIsoDateDMY(data.periodo_desde)}) hasta la fecha`
-              : 'Período: histórico completo'
-    }</p>
-    <p>${escapeHtmlRaw(template.intro)}</p>
-    ${antesTabla ? `<p>${escapeHtmlRaw(antesTabla)}</p>` : ''}
+    <p class="periodo">${escapeHtmlRaw(doc.periodo)}</p>
+    ${doc.parrafos.map((p) => `<p>${escapeHtmlRaw(p)}</p>`).join('')}
     <table>
         <thead><tr>${headerRow}</tr></thead>
         <tbody>${bodyRows}</tbody>
         <tfoot><tr>${totalsRow}</tr></tfoot>
     </table>
-    ${template.despuesTabla(totalPagadoFmt, diasMora)}
-    <div class="dias-mora">
+    ${posTabla}
+    ${
+        doc.diasMora !== null
+            ? `<div class="dias-mora">
         <div class="dias-mora-label">Días de Mora</div>
-        <div class="dias-mora-value">${escapeHtmlRaw(diasMora)}</div>
-    </div>
+        <div class="dias-mora-value">${escapeHtmlRaw(doc.diasMora)}</div>
+    </div>`
+            : ''
+    }
     <div class="cierre">
-        <p>Cordialmente,</p>
-        <p>Servicio al cliente<br/>${escapeHtmlRaw(template.empresa)}<br/>${escapeHtmlRaw(template.email)}</p>
+        <p>${escapeHtmlRaw(saludo)}</p>
+        <p>${firma.map((l) => escapeHtmlRaw(l)).join('<br/>')}</p>
     </div>
+    ${doc.pie.length ? `<div class="pie">${doc.pie.map((l) => `<p>${escapeHtmlRaw(l)}</p>`).join('')}</div>` : ''}
 </body>
 </html>`;
 

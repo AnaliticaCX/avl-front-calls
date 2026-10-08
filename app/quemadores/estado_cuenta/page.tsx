@@ -13,17 +13,11 @@ import { useAbortable } from "../../hooks/useAbortable";
 import { EstadoCuentaResponse, EstadoCuentaRow } from "../../types/quemadores";
 import { apiClient, isAbortError } from "../../utils/api";
 import { downloadEstadoCuentaPDF } from "../../utils/download";
+import { downloadEstadoCuentaWord } from "../../utils/downloadEstadoCuentaWord";
 import { formatCurrency } from "../../utils/formatters";
 
 const sumColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuentaRow): number =>
     pagos.reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
-
-// "2025-07-18" viene sin hora: new Date() la interpreta como UTC y en Colombia
-// (UTC-5) se corre un día hacia atrás al formatear en hora local.
-const formatIsoDateDMY = (iso: string): string => {
-    const [y, m, d] = iso.split("-");
-    return `${d}/${m}/${y}`;
-};
 
 // Declaraciones de renta piden años fiscales completos (hasta 31 de dic), casi
 // nunca una fecha intermedia: elegir el año de una lista es más rápido que
@@ -114,17 +108,19 @@ export default function EstadoCuentaPage() {
             <PageHeader
                 icon={FileText}
                 title="Estado de Cuenta"
-                description="Genera el estado de cuenta de una obligación. La plantilla legal (Resfin, Moviaval o Avalogic) se elige automáticamente según el tipo de negocio del crédito."
+                description="Genera el estado de cuenta de una obligación. La plantilla legal (Resfin, Moviaval o Avalogic, de aval o de compra de cartera) se elige automáticamente según el tipo de negocio y su historial de cambios."
             />
 
             <InfoCallout id="estado-cuenta" title="¿Cómo funciona?">
                 <ul className="space-y-1 list-disc list-inside">
                     <li>Se consulta <strong>una sola obligación</strong> a la vez</li>
                     <li>El avalista (Resfin / Moviaval / Avalogic) se detecta automáticamente por el tipo de negocio del crédito</li>
+                    <li>Si la obligación pasó de un avalista a otro (según el histórico de cambios de tipo de negocio) se usa la plantilla de <strong>compra de cartera</strong>; si no, la de aval. Avalogic siempre usa compra de cartera</li>
+                    <li>Descarga en <strong>Word</strong> para completar a mano el liquidador de Optimus: el documento trae un hueco resaltado donde pegar la imagen</li>
                     <li>La tabla agrupa los pagos por fecha en capital, intereses, mora, gastos de cobranza, aval y seguros</li>
                     <li>Conceptos como garantía mobiliaria, GPS o comisiones no se incluyen (no forman parte del estado de cuenta)</li>
-                    <li>Por defecto solo se traen los pagos recibidos <strong>desde la subrogación</strong> (fecha de ejecución del aval) hasta hoy — antes de esa fecha el acreedor era Crediorbe, no el avalista</li>
-                    <li>Para declaraciones de renta: elige el <strong>año fiscal</strong> para acotar además a los pagos de ese año (del 1 de enero al 31 de diciembre)</li>
+                                        <li>Sin año fiscal se trae el histórico completo de pagos</li>
+                    <li>Para declaraciones de renta: elige el <strong>año fiscal</strong> para acotar a los pagos de ese año (del 1 de enero al 31 de diciembre)</li>
                 </ul>
             </InfoCallout>
 
@@ -187,6 +183,14 @@ export default function EstadoCuentaPage() {
                                     Obligación {result.obligacion}
                                 </span>
                                 <StatusPill value={result.avalista} tone="info" />
+                                <StatusPill
+                                    value={
+                                        result.compra_cartera || result.avalista === "Avalogic"
+                                            ? "Compra de cartera"
+                                            : "Aval"
+                                    }
+                                    tone="neutral"
+                                />
                                 {result.estado_obligacion && (
                                     <StatusPill
                                         value={result.estado_obligacion}
@@ -195,12 +199,8 @@ export default function EstadoCuentaPage() {
                                 )}
                                 <span className="pill bg-ink-50 text-ink-600">
                                     {result.fecha_corte
-                                        ? result.periodo_desde === `${result.fecha_corte.slice(0, 4)}-01-01`
-                                            ? `Año fiscal ${result.fecha_corte.slice(0, 4)}`
-                                            : `Año fiscal ${result.fecha_corte.slice(0, 4)} (desde subrogación, ${formatIsoDateDMY(result.periodo_desde!)})`
-                                        : result.periodo_desde
-                                          ? `Desde subrogación (${formatIsoDateDMY(result.periodo_desde)})`
-                                          : "Histórico completo"}
+                                        ? `Año fiscal ${result.fecha_corte.slice(0, 4)}`
+                                        : "Histórico completo"}
                                 </span>
                             </div>
                         </div>
@@ -232,26 +232,23 @@ export default function EstadoCuentaPage() {
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => downloadEstadoCuentaPDF(result)}
-                            className="btn btn-primary"
-                        >
-                            Descargar PDF
-                        </button>
-                    </div>
-
-                    {result.avalista === "Avalogic" && (
-                        <div
-                            role="alert"
-                            className="rounded-xl border border-caution/25 bg-caution-soft p-4 text-sm text-caution"
-                        >
-                            El texto legal de la plantilla Avalogic todavía está pendiente de definir
-                            (la versión recibida repetía el texto de Resfin). El PDF se genera con un
-                            párrafo marcado como pendiente — no lo envíes a un cliente hasta que se
-                            reemplace.
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => downloadEstadoCuentaPDF(result)}
+                                className="btn btn-primary"
+                            >
+                                Descargar PDF
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => downloadEstadoCuentaWord(result)}
+                                className="btn btn-ghost"
+                            >
+                                Descargar Word
+                            </button>
                         </div>
-                    )}
+                    </div>
 
                     <Table
                         columns={columns}

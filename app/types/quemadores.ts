@@ -73,6 +73,9 @@ export interface EstadoCuentaResponse {
     saldo_actual: number | string | null;
     dias_mora: number | null;
     fecha_ejecucion: string | null;
+    compra_cartera: boolean;
+    avalista_anterior: Avalista | null;
+    fecha_adquisicion: string | null;
     pagos: EstadoCuentaRow[];
     total_pagado: number | string;
     fecha_corte: string | null;
