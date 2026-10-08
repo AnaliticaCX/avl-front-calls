@@ -186,11 +186,15 @@ export const downloadEstadoCuentaWord = async (data: EstadoCuentaResponse): Prom
                         spacing: { before: 360, after: 80 },
                         children: [new TextRun({ text: 'ESTADO DE CUENTA', bold: true, size: 28 })],
                     }),
-                    new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        spacing: { after: 240 },
-                        children: [new TextRun({ text: doc.periodo, size: 18, color: '6B7280' })],
-                    }),
+                    ...(doc.periodo
+                        ? [
+                              new Paragraph({
+                                  alignment: AlignmentType.CENTER,
+                                  spacing: { after: 240 },
+                                  children: [new TextRun({ text: doc.periodo, size: 18, color: '6B7280' })],
+                              }),
+                          ]
+                        : []),
                     ...doc.parrafos.map((p) => parrafo([{ t: p }])),
                     tabla,
                     new Paragraph({ spacing: { after: 160 }, children: [] }),

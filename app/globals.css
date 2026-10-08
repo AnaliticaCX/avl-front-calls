@@ -137,6 +137,13 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+
+    /* Un spinner congelado parece una pantalla colgada: es un indicador de estado, no
+       decoración, así que sigue girando aunque el sistema pida menos movimiento. */
+    .animate-spin {
+      animation-duration: 1s !important;
+      animation-iteration-count: infinite !important;
+    }
   }
 }
 

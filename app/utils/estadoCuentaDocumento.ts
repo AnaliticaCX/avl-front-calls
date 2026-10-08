@@ -19,6 +19,7 @@ export interface EstadoCuentaDocumento {
     logo: string;
     ciudad: string;
     fecha: string;
+    /** Solo con año fiscal; vacío para el histórico. */
     periodo: string;
     parrafos: string[];
     posTabla: BloquePosTabla[];
@@ -242,7 +243,8 @@ const periodoTexto = (data: EstadoCuentaResponse): string => {
         const desde = formatIsoDateDMY(data.periodo_desde ?? data.fecha_corte);
         return `Período: año fiscal ${data.fecha_corte.slice(0, 4)} (${desde} — ${formatIsoDateDMY(data.fecha_corte)})`;
     }
-    return 'Período: histórico completo';
+    // Sin año fiscal es el histórico: no se escribe en el documento.
+    return '';
 };
 
 /** Arma el contenido del estado de cuenta que comparten el PDF y el Word. */

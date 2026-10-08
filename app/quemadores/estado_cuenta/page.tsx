@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleStop, FileText, Loader2, Search } from "lucide-react";
+import { FileText, Loader2, Search, X } from "lucide-react";
 import { useState } from "react";
 import { loanStatusTone, Stack, StatusPill } from "../../components/common/cells";
 import ErrorMessage from "../../components/common/ErrorMessage";
@@ -12,9 +12,9 @@ import Input from "../../components/Input";
 import { useAbortable } from "../../hooks/useAbortable";
 import { EstadoCuentaResponse, EstadoCuentaRow } from "../../types/quemadores";
 import { apiClient, isAbortError } from "../../utils/api";
-import { downloadEstadoCuentaPDF } from "../../utils/download";
 import { downloadEstadoCuentaWord } from "../../utils/downloadEstadoCuentaWord";
 import { formatCurrency } from "../../utils/formatters";
+import EstadoCuentaPreview from "./EstadoCuentaPreview";
 
 const sumColumn = (pagos: EstadoCuentaRow[], key: keyof EstadoCuentaRow): number =>
     pagos.reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
@@ -32,6 +32,7 @@ export default function EstadoCuentaPage() {
     const [loanNumber, setLoanNumber] = useState("");
     const [anioFiscal, setAnioFiscal] = useState("");
     const [result, setResult] = useState<EstadoCuentaResponse | null>(null);
+    const [vista, setVista] = useState<"tabla" | "documento">("tabla");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const { begin, abort } = useAbortable();
@@ -159,7 +160,7 @@ export default function EstadoCuentaPage() {
                     </button>
                     {loading && (
                         <button type="button" onClick={cancelar} className="btn btn-ghost text-critical">
-                            <CircleStop size={15} aria-hidden />
+                            <X size={15} aria-hidden />
                             Cancelar
                         </button>
                     )}
@@ -186,8 +187,8 @@ export default function EstadoCuentaPage() {
                                 <StatusPill
                                     value={
                                         result.compra_cartera || result.avalista === "Avalogic"
-                                            ? "Compra de cartera"
-                                            : "Aval"
+                                            ? "Plantilla: Compra de cartera"
+                                            : "Plantilla: Aval"
                                     }
                                     tone="neutral"
                                 />
@@ -198,9 +199,7 @@ export default function EstadoCuentaPage() {
                                     />
                                 )}
                                 <span className="pill bg-ink-50 text-ink-600">
-                                    {result.fecha_corte
-                                        ? `Año fiscal ${result.fecha_corte.slice(0, 4)}`
-                                        : "Histórico completo"}
+                                    {result.fecha_corte ? `Año fiscal ${result.fecha_corte.slice(0, 4)}` : "Histórico"}
                                 </span>
                             </div>
                         </div>
@@ -232,31 +231,47 @@ export default function EstadoCuentaPage() {
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                onClick={() => downloadEstadoCuentaPDF(result)}
-                                className="btn btn-primary"
-                            >
-                                Descargar PDF
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => downloadEstadoCuentaWord(result)}
-                                className="btn btn-ghost"
-                            >
-                                Descargar Word
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => downloadEstadoCuentaWord(result)}
+                            className="btn btn-primary"
+                        >
+                            Descargar Word
+                        </button>
                     </div>
 
-                    <Table
-                        columns={columns}
-                        data={result.pagos}
-                        expandable={false}
-                        totalsRow={totales}
-                        totalsLabel="Totales"
-                    />
+                    <div className="flex gap-2" role="tablist" aria-label="Vista del estado de cuenta">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={vista === "tabla"}
+                            onClick={() => setVista("tabla")}
+                            className={vista === "tabla" ? "btn btn-primary" : "btn btn-ghost"}
+                        >
+                            Tabla de pagos
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={vista === "documento"}
+                            onClick={() => setVista("documento")}
+                            className={vista === "documento" ? "btn btn-primary" : "btn btn-ghost"}
+                        >
+                            Vista previa del documento
+                        </button>
+                    </div>
+
+                    {vista === "tabla" ? (
+                        <Table
+                            columns={columns}
+                            data={result.pagos}
+                            expandable={false}
+                            totalsRow={totales}
+                            totalsLabel="Totales"
+                        />
+                    ) : (
+                        <EstadoCuentaPreview data={result} />
+                    )}
                 </div>
             )}
         </div>

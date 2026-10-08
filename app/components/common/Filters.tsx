@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleStop, Loader2, Search, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { FormEvent, ReactNode } from "react";
 import Input from "../Input";
 
@@ -90,7 +90,7 @@ export default function Filters({
 
                 {loading && onCancel ? (
                     <button type="button" onClick={onCancel} className="btn btn-ghost text-critical">
-                        <CircleStop size={15} aria-hidden />
+                        <X size={15} aria-hidden />
                         Cancelar búsqueda
                     </button>
                 ) : (

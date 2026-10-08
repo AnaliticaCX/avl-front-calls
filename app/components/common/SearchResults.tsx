@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleStop, Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import type { Paging } from "../../hooks/usePagedSearch";
 import EmptyState from "./EmptyState";
@@ -163,7 +163,7 @@ function TableSkeleton({ columns, onCancel }: { columns: number; onCancel?: () =
                 </div>
                 {onCancel && (
                     <button type="button" onClick={onCancel} className="btn btn-ghost py-1.5 text-sm text-critical">
-                        <CircleStop size={15} aria-hidden />
+                        <X size={15} aria-hidden />
                         Cancelar
                     </button>
                 )}

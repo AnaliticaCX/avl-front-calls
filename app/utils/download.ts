@@ -1,7 +1,5 @@
 import * as XLSX from 'xlsx';
 import type { Cdr9Record } from '../types/cdr';
-import type { EstadoCuentaResponse } from '../types/quemadores';
-import { construirDocumento, ESTADO_CUENTA_COLUMNS, filasTabla, nombreArchivo } from './estadoCuentaDocumento';
 
 export const downloadJSON = (data: any, filename: string): void => {
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -110,106 +108,6 @@ export const downloadPDF = (
         alert('No se pudo abrir la ventana de impresión. Habilita las ventanas emergentes para descargar el PDF.');
         return;
     }
-    printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
-        URL.revokeObjectURL(blobUrl);
-    };
-};
-
-/**
- * Genera el PDF del estado de cuenta con la plantilla legal que corresponde al avalista y al
- * tipo de documento (aval o compra de cartera), ya resueltos desde el backend.
- */
-export const downloadEstadoCuentaPDF = (data: EstadoCuentaResponse): void => {
-    const doc = construirDocumento(data);
-    const { filas, totales } = filasTabla(data);
-
-    const headerRow = ESTADO_CUENTA_COLUMNS.map((c) => `<th>${c.label}</th>`).join('');
-    const bodyRows = filas.map((cells) => `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('');
-    const totalsRow = totales.map((c) => `<td><strong>${c}</strong></td>`).join('');
-
-    const posTabla = doc.posTabla
-        .map((bloque) =>
-            // El hueco del liquidador de Optimus solo existe en el Word.
-            bloque.tipo === 'liquidador'
-                ? ''
-                : `<p>${bloque.segmentos
-                      .map((s) => (s.b ? `<strong>${escapeHtmlRaw(s.t)}</strong>` : escapeHtmlRaw(s.t)))
-                      .join('')}</p>`
-        )
-        .join('');
-    const [saludo, ...firma] = doc.cierre;
-
-    const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8" />
-<title>${escapeHtmlRaw(nombreArchivo(data))}</title>
-<style>
-    * { box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; margin: 32px; font-size: 12px; line-height: 1.6; }
-    .letterhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .logo { height: 56px; width: auto; max-width: 220px; object-fit: contain; }
-    h1 { font-size: 16px; text-align: center; margin: 0 0 6px; }
-    .periodo { text-align: center; font-size: 11px; color: #6b7280; margin: 0 0 20px; }
-    p { margin: 0 0 12px; text-align: justify; }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 16px; }
-    th { background: #375a6f; color: #fff; padding: 6px 4px; text-align: center; }
-    td { border: 1px solid #e5e7eb; padding: 5px 4px; text-align: center; }
-    tr:nth-child(even) td { background: #f9fafb; }
-    tfoot td { background: #375a6f; color: #fff; font-weight: bold; }
-    .dias-mora { display: inline-block; border: 1px solid #375a6f; border-radius: 4px;
-        overflow: hidden; margin: 4px 0 16px; min-width: 110px; text-align: center; }
-    .dias-mora-label { background: #375a6f; color: #fff; font-weight: bold; padding: 6px 10px; font-size: 10px; }
-    .dias-mora-value { padding: 10px; font-size: 16px; font-weight: bold; }
-    .cierre { margin-top: 24px; }
-    .cierre p { text-align: left; }
-    .pie { margin-top: 12px; text-align: center; }
-    .pie p { text-align: center; margin: 0; }
-    @page { size: portrait; margin: 16mm; }
-</style>
-</head>
-<body>
-    <div class="letterhead">
-        <div>${escapeHtmlRaw(doc.ciudad)}, ${escapeHtmlRaw(doc.fecha)}</div>
-        <img class="logo" src="${window.location.origin}${doc.logo}" alt="${escapeHtmlRaw(doc.empresa)}" />
-    </div>
-    <h1>ESTADO DE CUENTA</h1>
-    <p class="periodo">${escapeHtmlRaw(doc.periodo)}</p>
-    ${doc.parrafos.map((p) => `<p>${escapeHtmlRaw(p)}</p>`).join('')}
-    <table>
-        <thead><tr>${headerRow}</tr></thead>
-        <tbody>${bodyRows}</tbody>
-        <tfoot><tr>${totalsRow}</tr></tfoot>
-    </table>
-    ${posTabla}
-    ${
-        doc.diasMora !== null
-            ? `<div class="dias-mora">
-        <div class="dias-mora-label">Días de Mora</div>
-        <div class="dias-mora-value">${escapeHtmlRaw(doc.diasMora)}</div>
-    </div>`
-            : ''
-    }
-    <div class="cierre">
-        <p>${escapeHtmlRaw(saludo)}</p>
-        <p>${firma.map((l) => escapeHtmlRaw(l)).join('<br/>')}</p>
-    </div>
-    ${doc.pie.length ? `<div class="pie">${doc.pie.map((l) => `<p>${escapeHtmlRaw(l)}</p>`).join('')}</div>` : ''}
-</body>
-</html>`;
-
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const blobUrl = URL.createObjectURL(blob);
-
-    const printWindow = window.open(blobUrl, '_blank');
-    if (!printWindow) {
-        URL.revokeObjectURL(blobUrl);
-        alert('No se pudo abrir la ventana de impresión. Habilita las ventanas emergentes para descargar el PDF.');
-        return;
-    }
-
     printWindow.onload = () => {
         printWindow.focus();
         printWindow.print();

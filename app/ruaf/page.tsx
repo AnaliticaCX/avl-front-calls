@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, CircleStop, Clock, Download, FileSpreadsheet, HelpCircle, Laptop, ListChecks, Loader2, Pause, Play, Radar, RefreshCw, Timer, Trash2, Upload, UploadCloud, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Download, FileSpreadsheet, HelpCircle, Laptop, ListChecks, Loader2, Pause, Play, Radar, RefreshCw, Timer, Trash2, Upload, UploadCloud, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ErrorMessage from "../components/common/ErrorMessage";
 import LoadingSpinner from "../components/common/LoadingSpinner";
@@ -210,7 +210,7 @@ function ProgresoSubida({
                 </div>
                 {onCancel && (
                     <button type="button" onClick={onCancel} className="btn btn-ghost py-1.5 text-sm text-critical">
-                        <CircleStop size={15} />
+                        <X size={15} />
                         Cancelar
                     </button>
                 )}
