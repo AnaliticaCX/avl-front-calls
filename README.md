@@ -34,7 +34,7 @@ fuentes (CDR, conectada, no conectada, IVR y tipificación).
 |---|---|---|
 | Paz y salvo | `/quemadores/paz_salvo` | Gestiones, acuerdos de pago y valores pagados por número de obligación. |
 | Contactos | `/quemadores/contactos` | Teléfonos y correos asociados a una obligación. |
-| Estado de cuenta | `/quemadores/estado_cuenta` | Genera el PDF del estado de cuenta de una obligación; la plantilla legal (Resfin, Moviaval o Avalogic) se elige sola según el tipo de negocio. Las reglas del cálculo están en la API: [estado_cuenta.md](../avl-app-datalake/docs/estado_cuenta.md). |
+| Estado de cuenta | `/quemadores/estado_cuenta` | Muestra los pagos de una obligación, una vista previa del documento y lo descarga en Word; la plantilla legal (Resfin, Moviaval o Avalogic, de aval o de compra de cartera) se elige sola. Las reglas del cálculo están en la API: [estado_cuenta.md](../avl-app-datalake/docs/estado_cuenta.md). |
 
 ### RUAF
 
