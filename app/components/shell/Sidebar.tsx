@@ -5,7 +5,14 @@ import { ChevronDown, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { HOME_ITEM, isActive, NAV_SECTIONS, type NavItem } from "../../config/navigation";
+import {
+    ASISTENTE_ITEM,
+    HOME_ITEM,
+    homePath,
+    isActive,
+    NAV_SECTIONS,
+    type NavItem,
+} from "../../config/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import Logo, { Isotipo } from "../brand/Logo";
@@ -18,7 +25,8 @@ interface SidebarProps {
 
 export default function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
     const router = useRouter();
-    const { logout } = useAuth();
+    const { logout, perfil } = useAuth();
+    const soloAsistente = perfil === "asistente";
     const [storedCollapsed, setStoredCollapsed] = useLocalStorage("org.sidebar.collapsed", false);
 
     // En movil se ignora el estado persistido: siempre expandido dentro del drawer.
@@ -40,7 +48,7 @@ export default function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                     }`}
             >
                 <Link
-                    href="/"
+                    href={homePath(perfil)}
                     onClick={onNavigate}
                     className="flex items-center rounded-lg transition-opacity hover:opacity-80"
                     aria-label="Organizate - Inicio"
@@ -75,33 +83,39 @@ export default function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
 
             {/* Navegacion */}
             <nav className="scrollbar-none flex-1 overflow-y-auto px-2 py-4">
-                <NavLink item={HOME_ITEM} collapsed={collapsed} onNavigate={onNavigate} />
+                {soloAsistente ? (
+                    <NavLink item={ASISTENTE_ITEM} collapsed={collapsed} onNavigate={onNavigate} />
+                ) : (
+                    <NavLink item={HOME_ITEM} collapsed={collapsed} onNavigate={onNavigate} />
+                )}
 
-                <div className="mt-5 space-y-5">
-                    {NAV_SECTIONS.map((section) => (
-                        <div key={section.id}>
-                            {collapsed ? (
-                                <div className="mx-3 mb-2 h-px bg-white/10" />
-                            ) : (
-                                <p className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-ink-500">
-                                    {section.label}
-                                </p>
-                            )}
+                {!soloAsistente && (
+                    <div className="mt-5 space-y-5">
+                        {NAV_SECTIONS.map((section) => (
+                            <div key={section.id}>
+                                {collapsed ? (
+                                    <div className="mx-3 mb-2 h-px bg-white/10" />
+                                ) : (
+                                    <p className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-ink-500">
+                                        {section.label}
+                                    </p>
+                                )}
 
-                            <ul className="space-y-0.5">
-                                {section.items.map((item) => (
-                                    <li key={item.href}>
-                                        <NavLink
-                                            item={item}
-                                            collapsed={collapsed}
-                                            onNavigate={onNavigate}
-                                        />
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
+                                <ul className="space-y-0.5">
+                                    {section.items.map((item) => (
+                                        <li key={item.href}>
+                                            <NavLink
+                                                item={item}
+                                                collapsed={collapsed}
+                                                onNavigate={onNavigate}
+                                            />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </nav>
 
             {/* Pie: salir */}

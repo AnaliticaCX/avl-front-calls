@@ -1,6 +1,7 @@
 import {
     BadgeCheck,
     BookUser,
+    Bot,
     Flame,
     FileText,
     Gauge,
@@ -16,6 +17,7 @@ import {
     Tags,
     type LucideIcon,
 } from "lucide-react";
+import type { Perfil } from "../utils/auth";
 
 export interface NavItem {
     href: string;
@@ -41,6 +43,29 @@ export const HOME_ITEM: NavItem = {
     label: "Inicio",
     icon: LayoutDashboard,
 };
+
+/**
+ * El asistente de recaudo no vive en NAV_SECTIONS: solo lo ve un token de perfil
+ * `asistente`, y ese token no ve nada más. Por eso tampoco aparece en el inicio ni en
+ * los hubs de los tokens generales, que recibirían 401 al abrirlo.
+ */
+export const ASISTENTE_ITEM: NavItem = {
+    href: "/asistente",
+    label: "Asistente de recaudo",
+    icon: Bot,
+    blurb: "Resumen del día y preguntas sobre el recaudo",
+};
+
+/** Pantalla de entrada de cada perfil. */
+export function homePath(perfil: Perfil): string {
+    return perfil === "asistente" ? ASISTENTE_ITEM.href : HOME_ITEM.href;
+}
+
+/** Rutas que un perfil puede abrir; lo demás lo devuelve a su pantalla de entrada. */
+export function puedeAbrir(perfil: Perfil, pathname: string): boolean {
+    const esAsistente = isActive(pathname, ASISTENTE_ITEM.href);
+    return perfil === "asistente" ? esAsistente : !esAsistente;
+}
 
 export const NAV_SECTIONS: NavSection[] = [
     {

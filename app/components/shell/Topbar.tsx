@@ -3,7 +3,7 @@
 import { ChevronRight, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ALL_NAV_ITEMS, findSection, HOME_ITEM } from "../../config/navigation";
+import { ALL_NAV_ITEMS, ASISTENTE_ITEM, findSection, HOME_ITEM, isActive } from "../../config/navigation";
 import ApiStatus from "./ApiStatus";
 
 interface Crumb {
@@ -14,6 +14,7 @@ interface Crumb {
 /** Construye la ruta de migas a partir de la configuracion de navegacion. */
 function buildCrumbs(pathname: string): Crumb[] {
     if (pathname === "/") return [{ label: "Inicio" }];
+    if (isActive(pathname, ASISTENTE_ITEM.href)) return [{ label: ASISTENTE_ITEM.label }];
 
     const crumbs: Crumb[] = [{ label: "Inicio", href: "/" }];
     const section = findSection(pathname);

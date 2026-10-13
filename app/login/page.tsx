@@ -5,6 +5,7 @@ import { AlertCircle, ArrowRight, KeyRound, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import Logo from '../components/brand/Logo';
+import { homePath } from '../config/navigation';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -26,8 +27,8 @@ export default function LoginPage() {
         setError('');
 
         try {
-            login(token);
-            router.push('/');
+            const perfil = await login(token.trim());
+            router.push(homePath(perfil));
         } catch {
             setError('No pudimos validar el token. Intentalo nuevamente.');
             setLoading(false);
