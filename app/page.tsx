@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import PageContainer from "./components/common/PageContainer";
-import { NAV_SECTIONS } from "./config/navigation";
+import { seccionesPara } from "./config/navigation";
+import { useAuth } from "./context/AuthContext";
 
 /** Tono de acento por area, en clases estaticas para que Tailwind las conserve. */
 const ACCENTS: Record<string, { icon: string; bar: string }> = {
@@ -23,6 +24,7 @@ const ACCENTS: Record<string, { icon: string; bar: string }> = {
 };
 
 export default function Home() {
+    const { perfil } = useAuth();
     return (
         <PageContainer>
             {/* Encabezado */}
@@ -43,7 +45,7 @@ export default function Home() {
 
             {/* Áreas */}
             <div className="grid gap-5 lg:grid-cols-3">
-                {NAV_SECTIONS.map((section, si) => {
+                {seccionesPara(perfil).map((section, si) => {
                     const tone = ACCENTS[section.accent] ?? ACCENTS.accent;
                     const SectionIcon = section.icon;
 

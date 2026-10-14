@@ -45,9 +45,9 @@ export const HOME_ITEM: NavItem = {
 };
 
 /**
- * El asistente de recaudo no vive en NAV_SECTIONS: solo lo ve un token de perfil
- * `asistente`, y ese token no ve nada más. Por eso tampoco aparece en el inicio ni en
- * los hubs de los tokens generales, que recibirían 401 al abrirlo.
+ * El asistente de recaudo (resumen diario y chat) solo lo ve el perfil `asistente`, que además
+ * ve todos los demás módulos. Los tokens generales ven la página sin este apartado: el backend
+ * les responde 401 en /api/asistente/resumen y /preguntas.
  */
 export const ASISTENTE_ITEM: NavItem = {
     href: "/asistente",
@@ -56,16 +56,18 @@ export const ASISTENTE_ITEM: NavItem = {
     blurb: "Resumen del día y preguntas sobre el recaudo",
 };
 
-/** Pantalla de entrada de cada perfil. */
+/** Pantalla de entrada de cada perfil: la líder entra directo al asistente. */
 export function homePath(perfil: Perfil): string {
     return perfil === "asistente" ? ASISTENTE_ITEM.href : HOME_ITEM.href;
 }
 
-/** Rutas que un perfil puede abrir; lo demás lo devuelve a su pantalla de entrada. */
-export function puedeAbrir(perfil: Perfil, pathname: string): boolean {
-    const esAsistente = isActive(pathname, ASISTENTE_ITEM.href);
-    return perfil === "asistente" ? esAsistente : !esAsistente;
-}
+export const RECAUDO_SECTION: NavSection = {
+    id: "recaudo",
+    label: "Recaudo",
+    icon: Bot,
+    accent: "accent",
+    items: [ASISTENTE_ITEM],
+};
 
 export const NAV_SECTIONS: NavSection[] = [
     {
@@ -138,14 +140,26 @@ export const NAV_SECTIONS: NavSection[] = [
     },
 ];
 
+/** Secciones que ve cada perfil: el asistente va primero y solo para su perfil. */
+export function seccionesPara(perfil: Perfil): NavSection[] {
+    return perfil === "asistente" ? [RECAUDO_SECTION, ...NAV_SECTIONS] : NAV_SECTIONS;
+}
+
+/** Un token general no abre el asistente; lo demás lo abren todos. */
+export function puedeAbrir(perfil: Perfil, pathname: string): boolean {
+    return perfil === "asistente" || !isActive(pathname, ASISTENTE_ITEM.href);
+}
+
+const TODAS_LAS_SECCIONES = [RECAUDO_SECTION, ...NAV_SECTIONS];
+
 /** Aplana la navegación a una lista de rutas para breadcrumbs y títulos. */
-export const ALL_NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((section) =>
+export const ALL_NAV_ITEMS: NavItem[] = TODAS_LAS_SECCIONES.flatMap((section) =>
     section.items.flatMap((item) => [item, ...(item.children ?? [])])
 );
 
 /** Devuelve la sección a la que pertenece una ruta. */
 export function findSection(pathname: string): NavSection | undefined {
-    return NAV_SECTIONS.find((section) =>
+    return TODAS_LAS_SECCIONES.find((section) =>
         section.items.some(
             (item) =>
                 pathname === item.href ||

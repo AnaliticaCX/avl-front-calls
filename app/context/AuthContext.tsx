@@ -20,14 +20,15 @@ interface AuthContextType {
 }
 
 /**
- * Un token es del asistente si el backend lo acepta en /api/asistente/acceso. Cualquier
- * otra respuesta (401 o red caída) lo deja como general, que es como entraba antes todo
- * token: el login nunca validó contra el backend y no se cambia eso aquí.
+ * El backend dice el perfil del token en /api/asistente/acceso: `asistente` ve además el chat
+ * de preguntas. Si la consulta falla (red caída, backend viejo) el token entra como general,
+ * que es como entraba antes todo token: el login nunca validó contra el backend y no se cambia
+ * eso aquí.
  */
 async function resolverPerfil(): Promise<Perfil> {
     try {
-        await apiClient.get('/api/asistente/acceso');
-        return 'asistente';
+        const { perfil } = await apiClient.get<{ perfil?: string }>('/api/asistente/acceso');
+        return perfil === 'asistente' ? 'asistente' : 'general';
     } catch {
         return 'general';
     }
