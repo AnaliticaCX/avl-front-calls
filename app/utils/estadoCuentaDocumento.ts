@@ -163,9 +163,9 @@ const posTablaConDiasMora = (c: Contexto): BloquePosTabla[] => [
 
 // Una plantilla por avalista y tipo de documento. Aval: el avalista pagó la obligación a
 // Crediorbe (subrogación por ejecución). Compra de cartera: la obligación pasó de un
-// avalista a otro. Avalogic solo tiene compra de cartera y Resfin solo aval (nunca compra
-// cartera). Textos tomados de los formatos que se vienen emitiendo (confirmado con el usuario
-// el 2026-10-08).
+// avalista a otro. Avalogic (que en los documentos se presenta como Organízate) solo tiene
+// compra de cartera. Textos tomados de los formatos que se vienen emitiendo (confirmado con el
+// usuario el 2026-10-08); la compra de cartera de Resfin replica la de Moviaval con los datos de Resfin.
 const PLANTILLAS: Record<string, Plantilla> = {
     'Resfin:aval': {
         empresa: 'RESPALDO FINANCIERO S.A.S',
@@ -174,6 +174,19 @@ const PLANTILLAS: Record<string, Plantilla> = {
         parrafos: (c) => [
             introAval('Resfin'),
             subrogacionAval('Resfin', c.obligacion, c.ejecucion.mes, c.ejecucion.anio),
+        ],
+        posTabla: posTablaResfin,
+        mostrarDiasMora: false,
+        cierre: cierreServicioAlCliente('Resfin', 'administracion@resfin.com.co'),
+        pie: PIE_RESFIN,
+    },
+    'Resfin:compra': {
+        empresa: 'RESPALDO FINANCIERO S.A.S',
+        logo: '/estado_cuenta/resfin.png',
+        ciudad: 'Medellín',
+        parrafos: (c) => [
+            introCompraCartera('Resfin', c.obligacion),
+            subrogacionCompraCartera('Resfin', c.adquisicion.mes, c.adquisicion.anio),
         ],
         posTabla: posTablaResfin,
         mostrarDiasMora: false,
@@ -202,25 +215,22 @@ const PLANTILLAS: Record<string, Plantilla> = {
         cierre: cierreServicioAlCliente('Moviaval S.A.S.', 'servicioalcliente@moviaval.com'),
     },
     'Avalogic:compra': {
-        empresa: 'Avalogic S.A.S.',
-        logo: '/estado_cuenta/avalogic.png',
+        empresa: 'Organízate S.A.S.',
+        logo: '/estado_cuenta/organizate.png',
         ciudad: 'Pereira',
         parrafos: (c) => [
-            introCompraCartera('Avalogic', c.obligacion),
-            subrogacionCompraCartera('Avalogic', c.adquisicion.mes, c.adquisicion.anio),
+            introCompraCartera('Organízate', c.obligacion),
+            subrogacionCompraCartera('Organízate', c.adquisicion.mes, c.adquisicion.anio),
         ],
         posTabla: posTablaConDiasMora,
         mostrarDiasMora: true,
-        cierre: cierreServicioAlCliente('Avalogic S.A.S.', 'servicioalcliente@avalogicsas.com'),
+        cierre: cierreServicioAlCliente('Organízate S.A.S.', 'servicioalcliente@avalogicsas.com'),
     },
 };
 
-/**
- * Avalogic solo emite compra de cartera, aunque el historial no muestre el avalista anterior.
- * Resfin nunca compra cartera: aunque la haya recibido de otro avalista, emite la de aval.
- */
+/** Avalogic (Organízate) solo emite compra de cartera, aunque el historial no muestre el avalista anterior. */
 const esCompraCartera = (avalista: Avalista, data: EstadoCuentaResponse): boolean =>
-    avalista === 'Avalogic' || (avalista !== 'Resfin' && data.compra_cartera);
+    avalista === 'Avalogic' || data.compra_cartera;
 
 export const plantillaDe = (data: EstadoCuentaResponse): Plantilla =>
     PLANTILLAS[`${data.avalista}:${esCompraCartera(data.avalista, data) ? 'compra' : 'aval'}`];
@@ -262,16 +272,49 @@ export const construirDocumento = (data: EstadoCuentaResponse): EstadoCuentaDocu
     };
 };
 
+const COLUMNAS_DESGLOSE = ESTADO_CUENTA_COLUMNS.filter(
+    (c) => c.key !== 'fecha_pago' && c.key !== 'total_pagado'
+).map((c) => c.key);
+
+/** Diferencia máxima (en pesos) que se atribuye a redondeo y no a un valor sin clasificar. */
+const MAX_AJUSTE_REDONDEO = 5;
+
+/**
+ * Se muestra en pesos enteros: redondear las columnas por separado puede dejar la suma de la
+ * fila $1 distinta del total pagado. Esa diferencia se suma a la columna de mayor valor; si es
+ * grande no es redondeo y se deja tal cual para no esconder un valor sin clasificar.
+ */
+const pagosEnPesos = (pagos: EstadoCuentaRow[]): EstadoCuentaRow[] =>
+    pagos.map((row) => {
+        const ajustada = { ...row } as Record<string, unknown>;
+        COLUMNAS_DESGLOSE.forEach((k) => {
+            ajustada[k] = Math.round(Number(row[k] ?? 0));
+        });
+        const total = Math.round(Number(row.total_pagado ?? 0));
+        ajustada.total_pagado = total;
+        const diferencia = total - COLUMNAS_DESGLOSE.reduce((acc, k) => acc + (ajustada[k] as number), 0);
+        if (diferencia !== 0 && Math.abs(diferencia) <= MAX_AJUSTE_REDONDEO) {
+            const mayor = COLUMNAS_DESGLOSE.reduce((a, b) =>
+                Math.abs(ajustada[b] as number) > Math.abs(ajustada[a] as number) ? b : a
+            );
+            ajustada[mayor] = (ajustada[mayor] as number) + diferencia;
+        }
+        return ajustada as unknown as EstadoCuentaRow;
+    });
+
 /** Fila de la tabla ya formateada; la última es la de totales. */
-export const filasTabla = (data: EstadoCuentaResponse): { filas: string[][]; totales: string[] } => ({
-    filas: data.pagos.map((row) =>
-        ESTADO_CUENTA_COLUMNS.map((c) =>
-            c.key === 'fecha_pago' ? formatDMY(String(row[c.key])) : formatCurrency(row[c.key] as number)
-        )
-    ),
-    totales: ESTADO_CUENTA_COLUMNS.map((c, i) =>
-        i === 0 ? 'TOTALES' : formatCurrency(sumEstadoCuentaColumn(data.pagos, c.key))
-    ),
-});
+export const filasTabla = (data: EstadoCuentaResponse): { filas: string[][]; totales: string[] } => {
+    const pagos = pagosEnPesos(data.pagos);
+    return {
+        filas: pagos.map((row) =>
+            ESTADO_CUENTA_COLUMNS.map((c) =>
+                c.key === 'fecha_pago' ? formatDMY(String(row[c.key])) : formatCurrency(row[c.key] as number)
+            )
+        ),
+        totales: ESTADO_CUENTA_COLUMNS.map((c, i) =>
+            i === 0 ? 'TOTALES' : formatCurrency(sumEstadoCuentaColumn(pagos, c.key))
+        ),
+    };
+};
 
 export const nombreArchivo = (data: EstadoCuentaResponse): string => `Estado de cuenta - ${data.obligacion}`;

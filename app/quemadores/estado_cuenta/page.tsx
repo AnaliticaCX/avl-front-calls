@@ -116,7 +116,7 @@ export default function EstadoCuentaPage() {
                 <ul className="space-y-1 list-disc list-inside">
                     <li>Se consulta <strong>una sola obligación</strong> a la vez</li>
                     <li>El avalista (Resfin / Moviaval / Avalogic) se detecta automáticamente por el tipo de negocio del crédito</li>
-                    <li>Si la obligación pasó de un avalista a otro (según el histórico de cambios de tipo de negocio) se usa la plantilla de <strong>compra de cartera</strong>; si no, la de aval. Avalogic siempre usa compra de cartera y Resfin siempre usa la de aval</li>
+                    <li>Si la obligación pasó de un avalista a otro (según el histórico de cambios de tipo de negocio) se usa la plantilla de <strong>compra de cartera</strong>; si no, la de aval. Avalogic (Organízate) siempre usa compra de cartera</li>
                     <li>Descarga en <strong>Word</strong> para completar a mano el liquidador de Optimus: el documento trae un hueco resaltado donde pegar la imagen</li>
                     <li>La tabla agrupa los pagos por fecha en capital, intereses, mora, gastos de cobranza, aval y seguros</li>
                     <li>Conceptos como garantía mobiliaria, GPS o comisiones no se incluyen (no forman parte del estado de cuenta)</li>
