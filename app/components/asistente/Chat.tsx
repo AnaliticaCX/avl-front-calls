@@ -53,28 +53,58 @@ function ConNegrita({ texto }: { texto: string }) {
     );
 }
 
-/** Párrafos y viñetas con guion: el único formato que se le pide al asistente. */
+const VINETA = /^\s*[-•*]\s+/;
+const NUMERO = /^\s*\d+[.)]\s+/;
+
+type Bloque = { tipo: "p"; lineas: string[] } | { tipo: "ul" | "ol"; items: string[] };
+
+/** Agrupa línea por línea: las viñetas seguidas forman una lista aunque vengan pegadas a una frase. */
+function agruparBloques(texto: string): Bloque[] {
+    const bloques: Bloque[] = [];
+    for (const linea of texto.split("\n")) {
+        const ultimo = bloques[bloques.length - 1];
+        if (!linea.trim()) {
+            if (ultimo) bloques.push({ tipo: "p", lineas: [] });
+            continue;
+        }
+        const tipo = NUMERO.test(linea) ? "ol" : VINETA.test(linea) ? "ul" : "p";
+        const contenido = linea.replace(tipo === "ol" ? NUMERO : VINETA, "").trim();
+        if (tipo === "p") {
+            if (ultimo?.tipo === "p") ultimo.lineas.push(linea);
+            else bloques.push({ tipo: "p", lineas: [linea] });
+        } else if (ultimo?.tipo === tipo) {
+            ultimo.items.push(contenido);
+        } else {
+            bloques.push({ tipo, items: [contenido] });
+        }
+    }
+    return bloques.filter((b) => (b.tipo === "p" ? b.lineas.length > 0 : b.items.length > 0));
+}
+
+/** Párrafos, viñetas y listas numeradas: el único formato que se le pide al asistente. */
 function TextoRespuesta({ texto }: { texto: string }) {
-    const bloques = texto.split(/\n\s*\n/);
     return (
         <div className="space-y-2 text-sm leading-relaxed text-ink-800">
-            {bloques.map((bloque, i) => {
-                const lineas = bloque.split("\n").filter((l) => l.trim());
-                if (lineas.length > 0 && lineas.every((l) => /^\s*[-•]\s/.test(l))) {
+            {agruparBloques(texto).map((bloque, i) => {
+                if (bloque.tipo === "p") {
                     return (
-                        <ul key={i} className="list-disc space-y-1 pl-5">
-                            {lineas.map((l, j) => (
-                                <li key={j}>
-                                    <ConNegrita texto={l.replace(/^\s*[-•]\s/, "")} />
-                                </li>
-                            ))}
-                        </ul>
+                        <p key={i} className="whitespace-pre-wrap">
+                            <ConNegrita texto={bloque.lineas.join("\n")} />
+                        </p>
                     );
                 }
+                const Lista = bloque.tipo;
                 return (
-                    <p key={i} className="whitespace-pre-wrap">
-                        <ConNegrita texto={bloque} />
-                    </p>
+                    <Lista
+                        key={i}
+                        className={`${Lista === "ol" ? "list-decimal" : "list-disc"} space-y-1 pl-5 marker:text-ink-400`}
+                    >
+                        {bloque.items.map((item, j) => (
+                            <li key={j}>
+                                <ConNegrita texto={item} />
+                            </li>
+                        ))}
+                    </Lista>
                 );
             })}
         </div>
@@ -83,7 +113,7 @@ function TextoRespuesta({ texto }: { texto: string }) {
 
 function Consultas({ trabajo }: { trabajo: Trabajo }) {
     const [abierto, setAbierto] = useState(false);
-    const consultas = trabajo.respuesta?.consultas ?? [];
+    const consultas = (trabajo.respuesta?.consultas ?? []).filter((c) => !c.error);
     if (consultas.length === 0) return null;
     return (
         <div className="mt-3 border-t border-hairline pt-2">
@@ -101,9 +131,7 @@ function Consultas({ trabajo }: { trabajo: Trabajo }) {
                     {consultas.map((c, i) => (
                         <li key={i} className="text-xs">
                             <p className="font-medium text-ink-700">{c.proposito}</p>
-                            <p className={c.error ? "text-critical" : "text-ink-400"}>
-                                {c.error ? `No se ejecutó: ${c.error}` : `${c.filas} filas · ${c.segundos} s`}
-                            </p>
+                            <p className="text-ink-400">{`${c.filas} filas · ${c.segundos} s`}</p>
                             <pre className="mt-1 overflow-x-auto rounded-lg bg-ink-950 p-3 text-[11px] leading-relaxed text-ink-100">
                                 {c.sql}
                             </pre>
