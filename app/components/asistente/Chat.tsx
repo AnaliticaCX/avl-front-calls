@@ -36,6 +36,51 @@ async function esperarRespuesta(id: string, cancelado: () => boolean): Promise<T
     throw new Error("La respuesta está tardando más de lo normal. Intenta de nuevo en un momento.");
 }
 
+/** Negrita con **texto**, sin interpretar HTML: cada trozo se pinta como texto de React. */
+function ConNegrita({ texto }: { texto: string }) {
+    return (
+        <>
+            {texto.split(/(\*\*[^*]+\*\*)/g).map((trozo, i) =>
+                trozo.startsWith("**") && trozo.endsWith("**") ? (
+                    <strong key={i} className="font-semibold text-ink-900">
+                        {trozo.slice(2, -2)}
+                    </strong>
+                ) : (
+                    <span key={i}>{trozo}</span>
+                )
+            )}
+        </>
+    );
+}
+
+/** Párrafos y viñetas con guion: el único formato que se le pide al asistente. */
+function TextoRespuesta({ texto }: { texto: string }) {
+    const bloques = texto.split(/\n\s*\n/);
+    return (
+        <div className="space-y-2 text-sm leading-relaxed text-ink-800">
+            {bloques.map((bloque, i) => {
+                const lineas = bloque.split("\n").filter((l) => l.trim());
+                if (lineas.length > 0 && lineas.every((l) => /^\s*[-•]\s/.test(l))) {
+                    return (
+                        <ul key={i} className="list-disc space-y-1 pl-5">
+                            {lineas.map((l, j) => (
+                                <li key={j}>
+                                    <ConNegrita texto={l.replace(/^\s*[-•]\s/, "")} />
+                                </li>
+                            ))}
+                        </ul>
+                    );
+                }
+                return (
+                    <p key={i} className="whitespace-pre-wrap">
+                        <ConNegrita texto={bloque} />
+                    </p>
+                );
+            })}
+        </div>
+    );
+}
+
 function Consultas({ trabajo }: { trabajo: Trabajo }) {
     const [abierto, setAbierto] = useState(false);
     const consultas = trabajo.respuesta?.consultas ?? [];
@@ -89,7 +134,7 @@ function Respuesta({ turno }: { turno: Turno }) {
     }
     return (
         <>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-800">{trabajo.respuesta.texto}</p>
+            <TextoRespuesta texto={trabajo.respuesta.texto} />
             <Consultas trabajo={trabajo} />
         </>
     );
