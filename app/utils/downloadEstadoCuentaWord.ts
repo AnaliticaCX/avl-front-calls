@@ -2,8 +2,12 @@ import type { EstadoCuentaResponse } from '../types/quemadores';
 import {
     construirDocumento,
     ESTADO_CUENTA_COLUMNS,
+    filasOtrasFuentes,
     filasTabla,
     nombreArchivo,
+    NOTA_OTRAS_FUENTES,
+    OTRAS_FUENTES_COLUMNS,
+    TITULO_OTRAS_FUENTES,
     type Segmento,
 } from './estadoCuentaDocumento';
 
@@ -109,6 +113,35 @@ export const downloadEstadoCuentaWord = async (data: EstadoCuentaResponse): Prom
         ],
     });
 
+    const otras = filasOtrasFuentes(data);
+    const tablaOtrasFuentes =
+        otras.filas.length > 0
+            ? [
+                  new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { before: 240, after: 40 },
+                      children: [new TextRun({ text: TITULO_OTRAS_FUENTES, bold: true, size: 20 })],
+                  }),
+                  new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { after: 120 },
+                      children: [new TextRun({ text: NOTA_OTRAS_FUENTES, size: 16, color: '6B7280' })],
+                  }),
+                  new Table({
+                      width: { size: 100, type: WidthType.PERCENTAGE },
+                      rows: [
+                          new TableRow({
+                              tableHeader: true,
+                              children: OTRAS_FUENTES_COLUMNS.map((c) => celda(c.label, { encabezado: true })),
+                          }),
+                          ...otras.filas.map((fila) => new TableRow({ children: fila.map((v) => celda(v)) })),
+                          new TableRow({ children: otras.totales.map((v) => celda(v, { negrilla: true })) }),
+                      ],
+                  }),
+                  new Paragraph({ spacing: { after: 160 }, children: [] }),
+              ]
+            : [];
+
     const encabezado = new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: { ...sinBordes, insideHorizontal: sinBorde, insideVertical: sinBorde },
@@ -198,6 +231,7 @@ export const downloadEstadoCuentaWord = async (data: EstadoCuentaResponse): Prom
                     ...doc.parrafos.map((p) => parrafo([{ t: p }])),
                     tabla,
                     new Paragraph({ spacing: { after: 160 }, children: [] }),
+                    ...tablaOtrasFuentes,
                     ...posTabla,
                     ...(doc.diasMora !== null
                         ? [parrafo([{ t: `Días de mora: ${doc.diasMora}`, b: true }])]

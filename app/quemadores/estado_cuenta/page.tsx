@@ -13,6 +13,7 @@ import { useAbortable } from "../../hooks/useAbortable";
 import { EstadoCuentaResponse, EstadoCuentaRow } from "../../types/quemadores";
 import { apiClient, isAbortError } from "../../utils/api";
 import { downloadEstadoCuentaWord } from "../../utils/downloadEstadoCuentaWord";
+import { NOTA_OTRAS_FUENTES, TITULO_OTRAS_FUENTES } from "../../utils/estadoCuentaDocumento";
 import { formatCurrency } from "../../utils/formatters";
 import EstadoCuentaPreview from "./EstadoCuentaPreview";
 
@@ -91,6 +92,24 @@ export default function EstadoCuentaPage() {
             render: (value: any) => <span className="tabular font-semibold text-ink-900">{formatCurrency(value)}</span>,
         },
     ];
+
+    const columnasOtras: Column[] = [
+        columns[0],
+        { key: "fuente", label: "Fuente" },
+        ...columns.slice(1),
+    ];
+
+    const totalesOtras = result
+        ? {
+              capital_pagado: sumColumn(result.otras_fuentes, "capital_pagado"),
+              interes_corriente: sumColumn(result.otras_fuentes, "interes_corriente"),
+              interes_mora: sumColumn(result.otras_fuentes, "interes_mora"),
+              gastos_cobranza: sumColumn(result.otras_fuentes, "gastos_cobranza"),
+              aval: sumColumn(result.otras_fuentes, "aval"),
+              seguros: sumColumn(result.otras_fuentes, "seguros"),
+              total_pagado: sumColumn(result.otras_fuentes, "total_pagado"),
+          }
+        : undefined;
 
     const totales = result
         ? {
@@ -229,6 +248,16 @@ export default function EstadoCuentaPage() {
                                     {formatCurrency(result.total_pagado)}
                                 </div>
                             </div>
+                            {result.otras_fuentes.length > 0 && (
+                                <div>
+                                    <div className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-400">
+                                        Descuentos
+                                    </div>
+                                    <div className="tabular text-lg font-semibold text-ink-900">
+                                        {formatCurrency(result.total_otras_fuentes)}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <button
@@ -262,13 +291,28 @@ export default function EstadoCuentaPage() {
                     </div>
 
                     {vista === "tabla" ? (
-                        <Table
-                            columns={columns}
-                            data={result.pagos}
-                            expandable={false}
-                            totalsRow={totales}
-                            totalsLabel="Totales"
-                        />
+                        <div className="space-y-6">
+                            <Table
+                                columns={columns}
+                                data={result.pagos}
+                                expandable={false}
+                                totalsRow={totales}
+                                totalsLabel="Totales"
+                            />
+                            {result.otras_fuentes.length > 0 && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-semibold text-ink-900">{TITULO_OTRAS_FUENTES}</h3>
+                                    <p className="text-xs text-ink-400">{NOTA_OTRAS_FUENTES}</p>
+                                    <Table
+                                        columns={columnasOtras}
+                                        data={result.otras_fuentes}
+                                        expandable={false}
+                                        totalsRow={totalesOtras}
+                                        totalsLabel="Totales"
+                                    />
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <EstadoCuentaPreview data={result} />
                     )}

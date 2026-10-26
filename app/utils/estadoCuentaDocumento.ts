@@ -1,4 +1,9 @@
-import type { Avalista, EstadoCuentaResponse, EstadoCuentaRow } from '../types/quemadores';
+import type {
+    Avalista,
+    EstadoCuentaOtraFuenteRow,
+    EstadoCuentaResponse,
+    EstadoCuentaRow,
+} from '../types/quemadores';
 import { formatCurrency } from './formatters';
 
 /** Fragmento de texto de un párrafo; `b` lo marca en negrilla. */
@@ -284,7 +289,7 @@ const MAX_AJUSTE_REDONDEO = 5;
  * fila $1 distinta del total pagado. Esa diferencia se suma a la columna de mayor valor; si es
  * grande no es redondeo y se deja tal cual para no esconder un valor sin clasificar.
  */
-const pagosEnPesos = (pagos: EstadoCuentaRow[]): EstadoCuentaRow[] =>
+const pagosEnPesos = <T extends EstadoCuentaRow>(pagos: T[]): T[] =>
     pagos.map((row) => {
         const ajustada = { ...row } as Record<string, unknown>;
         COLUMNAS_DESGLOSE.forEach((k) => {
@@ -299,7 +304,7 @@ const pagosEnPesos = (pagos: EstadoCuentaRow[]): EstadoCuentaRow[] =>
             );
             ajustada[mayor] = (ajustada[mayor] as number) + diferencia;
         }
-        return ajustada as unknown as EstadoCuentaRow;
+        return ajustada as unknown as T;
     });
 
 /** Fila de la tabla ya formateada; la última es la de totales. */
@@ -317,4 +322,33 @@ export const filasTabla = (data: EstadoCuentaResponse): { filas: string[][]; tot
     };
 };
 
-export const nombreArchivo = (data: EstadoCuentaResponse): string => `Estado de cuenta - ${data.obligacion}`;
+/** Columnas de la tabla de otras fuentes: la de pagos con la fuente después de la fecha. */
+export const OTRAS_FUENTES_COLUMNS: { key: keyof EstadoCuentaOtraFuenteRow; label: string }[] = [
+    ESTADO_CUENTA_COLUMNS[0],
+    { key: 'fuente', label: 'FUENTE' },
+    ...ESTADO_CUENTA_COLUMNS.slice(1),
+];
+
+export const TITULO_OTRAS_FUENTES = 'APLICACIONES POR OTRAS FUENTES';
+export const NOTA_OTRAS_FUENTES =
+    'Aplicaciones por descuentos. No corresponden a pagos recibidos y no están incluidas en el total pagado.';
+
+/** Tabla de aplicaciones por otras fuentes ya formateada; vacía si no hay ninguna. */
+export const filasOtrasFuentes = (data: EstadoCuentaResponse): { filas: string[][]; totales: string[] } => {
+    const otras = pagosEnPesos(data.otras_fuentes ?? []);
+    const formato = (row: EstadoCuentaOtraFuenteRow, c: (typeof OTRAS_FUENTES_COLUMNS)[number]) => {
+        if (c.key === 'fecha_pago') return formatDMY(String(row[c.key]));
+        if (c.key === 'fuente') return row.fuente;
+        return formatCurrency(row[c.key] as number);
+    };
+    return {
+        filas: otras.map((row) => OTRAS_FUENTES_COLUMNS.map((c) => formato(row, c))),
+        totales: OTRAS_FUENTES_COLUMNS.map((c, i) => {
+            if (i === 0) return 'TOTALES';
+            if (c.key === 'fuente') return '';
+            return formatCurrency(sumEstadoCuentaColumn(otras, c.key as keyof EstadoCuentaRow));
+        }),
+    };
+};
+
+export const nombreArchivo =(data: EstadoCuentaResponse): string => `Estado de cuenta - ${data.obligacion}`;
