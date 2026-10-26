@@ -62,6 +62,11 @@ export interface EstadoCuentaRow {
     total_pagado: number | string;
 }
 
+/** Aplicación Otras Fuentes (descuentos; la dación en pago va en pagos): no es dinero recibido ni suma al total pagado. */
+export interface EstadoCuentaOtraFuenteRow extends EstadoCuentaRow {
+    fuente: string;
+}
+
 export interface EstadoCuentaResponse {
     status: string;
     avalista: Avalista;
@@ -78,6 +83,8 @@ export interface EstadoCuentaResponse {
     fecha_adquisicion: string | null;
     pagos: EstadoCuentaRow[];
     total_pagado: number | string;
+    otras_fuentes: EstadoCuentaOtraFuenteRow[];
+    total_otras_fuentes: number | string;
     fecha_corte: string | null;
     periodo_desde: string | null;
 }
