@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { ASISTENTE_VISIBLE } from '../config/navigation';
 import { apiClient } from '../utils/api';
 import {
     getAuthPerfil,
@@ -23,9 +24,12 @@ interface AuthContextType {
  * El backend dice el perfil del token en /api/asistente/acceso: `asistente` ve además el chat
  * de preguntas. Si la consulta falla (red caída, backend viejo) el token entra como general,
  * que es como entraba antes todo token: el login nunca validó contra el backend y no se cambia
- * eso aquí.
+ * eso aquí. Con el apartado apagado no se pregunta: todo token entra como general.
  */
 async function resolverPerfil(): Promise<Perfil> {
+    if (!ASISTENTE_VISIBLE) {
+        return 'general';
+    }
     try {
         const { perfil } = await apiClient.get<{ perfil?: string }>('/api/asistente/acceso');
         return perfil === 'asistente' ? 'asistente' : 'general';

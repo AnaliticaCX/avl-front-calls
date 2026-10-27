@@ -2,9 +2,9 @@ const AUTH_TOKEN_KEY = 'app_auth_token';
 const AUTH_PERFIL_KEY = 'app_auth_perfil';
 
 /**
- * Perfil del token. `general` abre los módulos de consulta; `asistente` abre solo el
- * asistente de recaudo. Los tokens guardados antes de que existiera el perfil no lo
- * tienen y se tratan como `general`, que es lo que eran.
+ * Perfil del token. `general` abre los módulos de consulta; `asistente` abre esos mismos
+ * módulos y además el asistente de recaudo, cuando el apartado está visible. Los tokens
+ * guardados antes de que existiera el perfil no lo tienen y se tratan como `general`.
  */
 export type Perfil = 'general' | 'asistente';
 
