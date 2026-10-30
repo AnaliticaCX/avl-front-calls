@@ -56,11 +56,10 @@ export const ASISTENTE_ITEM: NavItem = {
 };
 
 /**
- * Interruptor del apartado. Apagado mientras el agente nuevo no sirva el resumen y el chat:
- * nadie ve la sección Recaudo, todos entran a Inicio y /asistente devuelve a Inicio. La
- * pantalla y el chat se conservan para cuando el apartado vuelva al mismo lugar.
+ * Interruptor del apartado. Encendido: el agente nuevo (ot-agent-chat) sirve el resumen y el chat
+ * por la misma ruta /api/asistente. Apagado, nadie ve la sección Recaudo y todos entran a Inicio.
  */
-export const ASISTENTE_VISIBLE = false;
+export const ASISTENTE_VISIBLE = true;
 
 /** Pantalla de entrada de cada perfil: con el apartado visible, la líder entra directo a él. */
 export function homePath(perfil: Perfil): string {
